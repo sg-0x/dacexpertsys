@@ -1,46 +1,32 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
+import { pageVariants, listVariants, itemVariants } from '../lib/motion';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const stats = [
   {
     label: 'Total Cases',
     value: '1,248',
-    change: '5%',
-    trendIcon: 'trending_up',
-    trendColor: 'text-emerald-500',
-    trendBg: 'bg-emerald-500/10',
     bgIcon: 'folder_shared',
     bgIconColor: 'text-[#1f3a89]',
   },
   {
     label: 'Pending DAC Cases',
     value: '45',
-    change: '12%',
-    trendIcon: 'trending_flat',
-    trendColor: 'text-amber-500',
-    trendBg: 'bg-amber-500/10',
     bgIcon: 'pending_actions',
     bgIconColor: 'text-amber-500',
   },
   {
     label: 'High Severity',
     value: '12',
-    change: '2%',
-    trendIcon: 'trending_up',
-    trendColor: 'text-red-500',
-    trendBg: 'bg-red-500/10',
     bgIcon: 'gavel',
     bgIconColor: 'text-red-500',
   },
   {
     label: 'Resolved Cases',
     value: '890',
-    change: '8%',
-    trendIcon: 'trending_up',
-    trendColor: 'text-emerald-500',
-    trendBg: 'bg-emerald-500/10',
     bgIcon: 'check_circle',
     bgIconColor: 'text-emerald-500',
   },
@@ -124,8 +110,86 @@ const CASES = [
   },
 ];
 
+// ─── Hardcoded notifications (swap for backend fetch later) ──────────────────
+const INITIAL_NOTIFICATIONS = [
+  {
+    id: 1,
+    icon: 'gavel',
+    iconBg: 'bg-red-100',
+    iconColor: 'text-red-600',
+    title: 'New High-Severity Case',
+    body: 'Case #DAC-2026-049 flagged as Critical — Exam Malpractice.',
+    time: '2 min ago',
+    read: false,
+  },
+  {
+    id: 2,
+    icon: 'pending_actions',
+    iconBg: 'bg-amber-100',
+    iconColor: 'text-amber-600',
+    title: 'DAC Review Pending',
+    body: 'Case #DAC-2026-041 is awaiting committee review.',
+    time: '18 min ago',
+    read: false,
+  },
+  {
+    id: 3,
+    icon: 'check_circle',
+    iconBg: 'bg-emerald-100',
+    iconColor: 'text-emerald-600',
+    title: 'Case Resolved',
+    body: 'Case #DAC-2026-038 marked as resolved by Admin.',
+    time: '1 hr ago',
+    read: false,
+  },
+  {
+    id: 4,
+    icon: 'person_add',
+    iconBg: 'bg-blue-100',
+    iconColor: 'text-blue-600',
+    title: 'New User Registered',
+    body: 'Faculty member Dr. Sharma joined the system.',
+    time: '3 hr ago',
+    read: true,
+  },
+  {
+    id: 5,
+    icon: 'rule',
+    iconBg: 'bg-purple-100',
+    iconColor: 'text-purple-600',
+    title: 'Rule Set Updated',
+    body: 'Disciplinary rule weights updated to v4.3.',
+    time: 'Yesterday',
+    read: true,
+  },
+];
+
 export default function Dashboard() {
   const [search, setSearch] = useState('');
+  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef(null);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e) {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setNotifOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const markAllRead = () =>
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+
+  const markRead = (id) =>
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
 
   const filtered = CASES.filter(
     (c) =>
@@ -135,20 +199,20 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="flex min-h-screen bg-[#f9f9fb] font-sans antialiased overflow-hidden">
+    <div className="min-h-screen bg-[#f9f9fb] font-sans antialiased">
       <Sidebar />
 
-      <main className="flex-1 flex flex-col h-screen overflow-y-auto bg-[#f9f9fb]">
+      <main className="pt-14 md:pt-0 md:pl-64 flex flex-col min-h-screen bg-[#f9f9fb]">
 
         {/* ── Header ── */}
-        <header className="bg-white border-b border-[#e2e8f0] sticky top-0 z-20 px-6 py-4 flex items-center justify-between">
+        <header className="bg-white border-b border-[#e2e8f0] sticky top-0 z-20 px-4 md:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-semibold text-[#0f172a] tracking-tight">Overview</h2>
+            <h2 className="text-xl font-semibold text-[#0f172a] tracking-tight">Dashboard</h2>
           </div>
 
-          <div className="flex items-center gap-6">
-            {/* Search */}
-            <div className="relative hidden sm:block">
+          <div className="flex items-center gap-3 md:gap-6">
+            {/* Search — hidden on mobile */}
+            <div className="relative hidden lg:block">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b] text-[20px]">
                 search
               </span>
@@ -162,10 +226,88 @@ export default function Dashboard() {
             </div>
 
             {/* Bell */}
-            <button className="relative text-[#64748b] hover:text-[#1f3a89] transition-colors">
-              <span className="material-symbols-outlined">notifications</span>
-              <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-[#ef4444] border border-white" />
-            </button>
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setNotifOpen((v) => !v)}
+                className={`relative p-1.5 rounded-lg transition-colors ${notifOpen ? 'text-[#1f3a89] bg-[#1f3a89]/10' : 'text-[#64748b] hover:text-[#1f3a89] hover:bg-slate-100'
+                  }`}
+                aria-label="Notifications"
+              >
+                <span className="material-symbols-outlined text-[22px]">notifications</span>
+                {unreadCount > 0 && (
+                  <span className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full bg-[#ef4444] border-2 border-white flex items-center justify-center">
+                    <span className="text-white text-[9px] font-bold leading-none">{unreadCount}</span>
+                  </span>
+                )}
+              </button>
+
+              {/* Dropdown panel */}
+              <AnimatePresence>
+                {notifOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -8 }}
+                    transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-[#e2e8f0] rounded-xl shadow-xl z-50 overflow-hidden origin-top-right"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-[#e2e8f0]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#0f172a] font-semibold text-sm">Notifications</span>
+                        {unreadCount > 0 && (
+                          <span className="bg-[#ef4444] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{unreadCount}</span>
+                        )}
+                      </div>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={markAllRead}
+                          className="text-[#1f3a89] text-xs font-medium hover:underline"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+
+                    {/* List */}
+                    <div className="max-h-[360px] overflow-y-auto divide-y divide-[#f1f5f9]">
+                      {notifications.map((n) => (
+                        <button
+                          key={n.id}
+                          onClick={() => markRead(n.id)}
+                          className={`w-full text-left flex items-start gap-3 px-4 py-3 transition-colors ${n.read ? 'bg-white hover:bg-slate-50' : 'bg-blue-50/60 hover:bg-blue-50'
+                            }`}
+                        >
+                          {/* Icon */}
+                          <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-0.5 ${n.iconBg}`}>
+                            <span className={`material-symbols-outlined text-[16px] ${n.iconColor}`}>{n.icon}</span>
+                          </div>
+                          {/* Text */}
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm leading-snug ${n.read ? 'text-[#0f172a] font-medium' : 'text-[#0f172a] font-semibold'}`}>
+                              {n.title}
+                            </p>
+                            <p className="text-xs text-[#64748b] mt-0.5 leading-snug">{n.body}</p>
+                            <p className="text-[10px] text-[#94a3b8] mt-1">{n.time}</p>
+                          </div>
+                          {/* Unread dot */}
+                          {!n.read && (
+                            <span className="h-2 w-2 rounded-full bg-[#1f3a89] shrink-0 mt-1.5" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="px-4 py-2.5 border-t border-[#e2e8f0] text-center">
+                      <button className="text-[#1f3a89] text-xs font-medium hover:underline">
+                        View all notifications
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* New Case */}
             <Link
@@ -179,32 +321,40 @@ export default function Dashboard() {
         </header>
 
         {/* ── Page Content ── */}
-        <div className="p-6 md:p-8 space-y-8 max-w-[1400px] mx-auto w-full">
+        <motion.div
+          variants={pageVariants}
+          initial="hidden"
+          animate="visible"
+          className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-[1400px] mx-auto w-full"
+        >
 
           {/* ── Stats Grid ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <motion.div
+            variants={listVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6"
+          >
             {stats.map((s) => (
-              <div
+              <motion.div
                 key={s.label}
-                className="bg-white rounded-xl p-5 border border-[#e2e8f0] shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group"
+                variants={itemVariants}
+                whileHover={{ y: -4, boxShadow: '0 10px 24px rgba(0,0,0,0.09)', transition: { duration: 0.2 } }}
+                className="bg-white rounded-xl p-5 border border-[#e2e8f0] shadow-sm transition-shadow relative overflow-hidden group"
               >
                 <div className="flex flex-col gap-1 relative z-10">
                   <span className="text-[#64748b] text-sm font-medium">{s.label}</span>
                   <div className="flex items-end gap-2">
                     <h3 className="text-3xl font-bold text-[#0f172a] tracking-tight">{s.value}</h3>
-                    <span className={`${s.trendColor} ${s.trendBg} text-xs font-medium px-1.5 py-0.5 rounded flex items-center mb-1`}>
-                      <span className="material-symbols-outlined text-[14px] mr-0.5">{s.trendIcon}</span>
-                      {s.change}
-                    </span>
                   </div>
                 </div>
                 {/* Background icon */}
                 <div className="absolute right-[-10px] top-[-10px] opacity-5 group-hover:opacity-10 transition-opacity">
                   <span className={`material-symbols-outlined text-[100px] ${s.bgIconColor}`}>{s.bgIcon}</span>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
           {/* ── Table Section ── */}
           <div className="space-y-4">
@@ -224,7 +374,7 @@ export default function Dashboard() {
 
             {/* Table card */}
             <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto min-w-full">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/50 border-b border-[#e2e8f0]">
@@ -322,7 +472,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </main>
     </div>
   );

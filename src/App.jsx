@@ -1,6 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import './index.css';
 import { useAuth } from './context/AuthContext';
+import { useLenis } from './hooks/useLenis';
 import Login from './Login.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import RegisterCase from './pages/RegisterCase.jsx';
@@ -10,38 +12,46 @@ import RulesWeights from './pages/admin/RulesWeights.jsx';
 import UserManagement from './pages/admin/UserManagement.jsx';
 import SystemConfig from './pages/admin/SystemConfig.jsx';
 
-/**
- * Redirect unauthenticated users to the login page.
- * Shows nothing while Firebase resolves auth state.
- */
 function ProtectedRoute({ children }) {
   const { currentUser, loading } = useAuth();
   if (loading) return null;
   return currentUser ? children : <Navigate to="/" replace />;
 }
 
-export default function App() {
+/** Must be inside <BrowserRouter> to use useLocation */
+function AnimatedRoutes() {
+  const location = useLocation();
+
   return (
-    <BrowserRouter>
-      <Routes>
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
         {/* Public */}
         <Route path="/" element={<Login />} />
 
         {/* Protected pages */}
-        <Route path="/dashboard"     element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/register-case" element={<ProtectedRoute><RegisterCase /></ProtectedRoute>} />
-        <Route path="/reports"       element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
 
         {/* Admin Settings — nested */}
         <Route path="/admin-settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>}>
           <Route index element={<Navigate to="rules-weights" replace />} />
           <Route path="rules-weights" element={<RulesWeights />} />
-          <Route path="users"         element={<UserManagement />} />
-          <Route path="system"        element={<SystemConfig />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route path="system" element={<SystemConfig />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+    </AnimatePresence>
+  );
+}
+
+export default function App() {
+  useLenis(); // 🌊 boot global smooth scroll
+  return (
+    <BrowserRouter>
+      <AnimatedRoutes />
     </BrowserRouter>
   );
 }

@@ -1,52 +1,56 @@
-import { HiCheck } from 'react-icons/hi';
-
 export default function ProgressBar({ steps, currentStep }) {
+  const percentage = steps.length <= 1 ? 100 : Math.round((currentStep / (steps.length - 1)) * 100);
+  const currentLabel = steps[currentStep] ?? steps[steps.length - 1];
+
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between">
-        {steps.map((step, index) => {
-          const isCompleted = index < currentStep;
-          const isCurrent = index === currentStep;
+    <div className="w-full space-y-2">
+      {/* Labels row */}
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-semibold text-[#1f3a89] truncate">{currentLabel}</span>
+        <span className="text-[#64748b] font-medium whitespace-nowrap ml-2">
+          Step {currentStep + 1} of {steps.length}
+        </span>
+      </div>
 
-          return (
-            <div key={index} className="flex items-center flex-1 last:flex-none">
-              {/* Step circle */}
-              <div className="flex flex-col items-center">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
-                    isCompleted
-                      ? 'bg-[#1f3a89] text-white shadow-md shadow-[#1f3a89]/30'
-                      : isCurrent
-                        ? 'bg-[#1f3a89] text-white shadow-lg shadow-[#1f3a89]/40 ring-4 ring-[#1f3a89]/20'
-                        : 'bg-[#f1f5f9] text-[#94a3b8] border-2 border-[#e2e8f0]'
-                  }`}
-                >
-                  {isCompleted ? <HiCheck className="w-5 h-5" /> : index + 1}
-                </div>
-                <span
-                  className={`mt-2 text-xs font-medium text-center max-w-[80px] ${
-                    isCurrent ? 'text-[#1f3a89]' : isCompleted ? 'text-[#0f172a]' : 'text-[#94a3b8]'
-                  }`}
-                >
-                  {step}
-                </span>
-              </div>
+      {/* Bar track */}
+      <div className="relative h-5 rounded-full bg-[#e2e8f0] overflow-hidden shadow-inner">
+        {/* Filled portion */}
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-[#1f3a89] to-[#3b5fc0] transition-all duration-500 ease-in-out flex items-center justify-end pr-2"
+          style={{ width: `${Math.max(percentage, 4)}%` }}
+        >
+          {percentage >= 12 && (
+            <span className="text-white text-xs font-bold leading-none">{percentage}%</span>
+          )}
+        </div>
 
-              {/* Connector line */}
-              {index < steps.length - 1 && (
-                <div className="flex-1 mx-2 mt-[-20px]">
-                  <div className="h-1 rounded-full bg-[#f1f5f9] overflow-hidden">
-                    <div
-                      className={`h-full rounded-full bg-[#1f3a89] transition-all duration-500 ${
-                        isCompleted ? 'w-full' : 'w-0'
-                      }`}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {/* Percentage shown outside bar when bar is too short */}
+        {percentage < 12 && (
+          <span
+            className="absolute top-1/2 -translate-y-1/2 text-xs font-bold text-[#1f3a89]"
+            style={{ left: `calc(${Math.max(percentage, 4)}% + 6px)` }}
+          >
+            {percentage}%
+          </span>
+        )}
+      </div>
+
+      {/* Step names row */}
+      <div className="flex justify-between">
+        {steps.map((step, index) => (
+          <span
+            key={index}
+            className={`text-[10px] font-medium text-center transition-colors duration-300 ${index < currentStep
+                ? 'text-[#1f3a89]'
+                : index === currentStep
+                  ? 'text-[#1f3a89] font-bold'
+                  : 'text-[#94a3b8]'
+              }`}
+            style={{ width: `${100 / steps.length}%` }}
+          >
+            {step}
+          </span>
+        ))}
       </div>
     </div>
   );

@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import ProgressBar from '../components/ProgressBar';
+import { createCase } from '../services/caseService';
+import { pageVariants, itemVariants, listVariants } from '../lib/motion';
 
 // ─── Offense options ──────────────────────────────────────────────────────────
 const offenseOptions = [
@@ -31,37 +34,83 @@ export default function RegisterCase() {
     offenseType: '', description: '', notes: '',
   });
   const [intoxicated, setIntoxicated] = useState(null);   // null | true | false
-  const [cooperated, setCooperated]   = useState(true);
+  const [cooperated, setCooperated] = useState(true);
   const [offenseCount, setOffenseCount] = useState(1);
   const [dragOver, setDragOver] = useState(false);
 
+  // Submission state
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [caseResult, setCaseResult] = useState(null); // { token, offenseLevel, severityScore, fine, penaltyPoints }
+
   const set = (field) => (e) => setForm((p) => ({ ...p, [field]: e.target.value }));
 
-  const handleSubmit = (e) => {
+  // Build the weighted answers array expected by the rule engine
+  const buildAnswers = () => {
+    const answers = [];
+
+    // Q1 – Intoxicated (boolean, weight: 30)
+    if (intoxicated !== null) {
+      answers.push({ questionId: 'Q1', weight: 30, value: intoxicated });
+    }
+
+    // Q2 – Cooperated (boolean, weight: -15 mitigating)
+    answers.push({ questionId: 'Q2', weight: -15, value: cooperated });
+
+    // Q3 – Offense count (select – weight drives recidivism multiplier)
+    const countWeightMap = { 1: 0, 2: 25, 3: 50 };
+    answers.push({
+      questionId: 'Q3',
+      weight: countWeightMap[offenseCount] ?? 0,
+      value: offenseCount,
+      offenseCount: offenseCount,
+    });
+
+    return answers;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log({ form, intoxicated, cooperated, offenseCount });
+    setError(null);
+    setLoading(true);
+    try {
+      const answers = buildAnswers();
+      const result = await createCase(form, answers);
+      setCaseResult(result);
+      setCurrentStep(STEPS.length - 1); // advance to last step
+    } catch (err) {
+      console.error('[RegisterCase] createCase failed:', err);
+      setError(err?.message ?? 'Failed to submit case. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f6f6f8] font-[Inter,sans-serif]">
+    <div className="min-h-screen bg-[#f6f6f8] font-[Inter,sans-serif]">
 
       <Sidebar />
 
       {/* ══ MAIN ══ */}
-      <main className="flex-1 overflow-y-auto py-[60px] px-8">
-        <div className="max-w-[1000px] mx-auto flex flex-col gap-8">
+      <main className="pt-14 md:pt-0 md:pl-64 overflow-y-auto py-8 md:py-[60px] px-4 md:px-8">
+        <motion.div
+          variants={pageVariants}
+          initial="hidden"
+          animate="visible"
+          className="max-w-[1000px] mx-auto flex flex-col gap-8"
+        >
 
           {/* Page header */}
           <div className="flex flex-col gap-2">
-            <h1 className="text-[#0f172a] text-[36px] font-black tracking-[-0.9px] leading-10">
+            <h1 className="text-[#0f172a] text-[28px] md:text-[30px] font-black tracking-[-0.9px] leading-tight pt-4">
               Register New Disciplinary Case
             </h1>
-            <p className="text-[#64748b] text-[18px] leading-7">
+            <p className="text-[#64748b] text-base md:text-[18px] leading-7">
               Submit details below to initiate an automated disciplinary review.
             </p>
           </div>
 
-          <div className="flex gap-8 items-start">
+          <div className="flex flex-col lg:flex-row gap-8 items-start">
 
             {/* ══ LEFT COLUMN ══ */}
             <div className="flex-1 min-w-0">
@@ -76,12 +125,12 @@ export default function RegisterCase() {
                   <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Student Information</h2>
                 </div>
 
-                <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
                   {[
-                    { label: 'Student Name',  field: 'studentName', placeholder: 'e.g. John Doe'          },
-                    { label: 'Roll Number',   field: 'rollNumber',  placeholder: 'e.g. CS-2023-045'       },
-                    { label: 'Department',    field: 'department',  placeholder: 'e.g. Computer Science'   },
-                    { label: 'Hostel Block',  field: 'hostelBlock', placeholder: 'e.g. Block A, Room 101'  },
+                    { label: 'Student Name', field: 'studentName', placeholder: 'e.g. John Doe' },
+                    { label: 'Roll Number', field: 'rollNumber', placeholder: 'e.g. CS-2023-045' },
+                    { label: 'Department', field: 'department', placeholder: 'e.g. Computer Science' },
+                    { label: 'Hostel Block', field: 'hostelBlock', placeholder: 'e.g. Block A, Room 101' },
                   ].map(({ label, field, placeholder }) => (
                     <div key={field} className="flex flex-col gap-2">
                       <label className="text-[#334155] text-sm font-medium">{label}</label>
@@ -145,9 +194,8 @@ export default function RegisterCase() {
                       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                       onDragLeave={() => setDragOver(false)}
                       onDrop={(e) => { e.preventDefault(); setDragOver(false); }}
-                      className={`h-40 flex flex-col items-center justify-center gap-2 bg-[#f8fafc] border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
-                        dragOver ? 'border-[#1f3a89] bg-[#f0f4ff]' : 'border-[#cbd5e1]'
-                      }`}
+                      className={`h-40 flex flex-col items-center justify-center gap-2 bg-[#f8fafc] border-2 border-dashed rounded-lg transition-colors cursor-pointer ${dragOver ? 'border-[#1f3a89] bg-[#f0f4ff]' : 'border-[#cbd5e1]'
+                        }`}
                     >
                       <span className="material-symbols-outlined text-[#94a3b8] text-[32px]">upload_file</span>
                       <p className="text-sm">
@@ -185,8 +233,8 @@ export default function RegisterCase() {
                       </p>
                       <div className="flex gap-4 pt-3">
                         {[
-                          { value: true,  label: 'Yes, evidence present' },
-                          { value: false, label: 'No, sober'             },
+                          { value: true, label: 'Yes, evidence present' },
+                          { value: false, label: 'No, sober' },
                         ].map(({ value, label }) => (
                           <label key={String(value)} className="flex-1 cursor-pointer">
                             <input
@@ -195,14 +243,12 @@ export default function RegisterCase() {
                               checked={intoxicated === value}
                               onChange={() => setIntoxicated(value)}
                             />
-                            <div className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
-                              intoxicated === value
-                                ? 'bg-[#f0f4ff] border-[#1f3a89]'
-                                : 'bg-white border-[#e2e4ea]'
-                            }`}>
-                              <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-                                intoxicated === value ? 'border-[#1f3a89] bg-[#1f3a89]' : 'border-[#cbd5e1]'
+                            <div className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${intoxicated === value
+                              ? 'bg-[#f0f4ff] border-[#1f3a89]'
+                              : 'bg-white border-[#e2e4ea]'
                               }`}>
+                              <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${intoxicated === value ? 'border-[#1f3a89] bg-[#1f3a89]' : 'border-[#cbd5e1]'
+                                }`}>
                                 {intoxicated === value && <div className="w-2 h-2 rounded-full bg-white" />}
                               </div>
                               <span className="text-[#334155] text-base font-medium">{label}</span>
@@ -226,11 +272,10 @@ export default function RegisterCase() {
                               key={opt}
                               type="button"
                               onClick={() => setCooperated(val)}
-                              className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${
-                                cooperated === val
-                                  ? 'bg-white text-[#1f3a89] shadow-[0_1px_2px_rgba(0,0,0,0.05)]'
-                                  : 'text-[#475569] hover:text-[#0f172a]'
-                              }`}
+                              className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${cooperated === val
+                                ? 'bg-white text-[#1f3a89] shadow-[0_1px_2px_rgba(0,0,0,0.05)]'
+                                : 'text-[#475569] hover:text-[#0f172a]'
+                                }`}
                             >
                               {opt}
                             </button>
@@ -255,11 +300,10 @@ export default function RegisterCase() {
                             key={count}
                             type="button"
                             onClick={() => setOffenseCount(count)}
-                            className={`relative flex-1 flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${
-                              offenseCount === count
-                                ? 'bg-[#1f3a89]/5 border-[#1f3a89]'
-                                : 'border-[#e2e4ea] hover:bg-slate-50'
-                            }`}
+                            className={`relative flex-1 flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${offenseCount === count
+                              ? 'bg-[#1f3a89]/5 border-[#1f3a89]'
+                              : 'border-[#e2e4ea] hover:bg-slate-50'
+                              }`}
                           >
                             <span className="text-[#0f172a] font-bold text-2xl leading-8">{label}</span>
                             <span className="text-[#64748b] text-xs">Offense</span>
@@ -310,6 +354,14 @@ export default function RegisterCase() {
                   </button>
                 </div>
 
+                {/* ── Error Banner ── */}
+                {error && (
+                  <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                    <span className="material-symbols-outlined text-red-500 text-[18px] mt-0.5">error</span>
+                    <p className="text-red-700 text-sm">{error}</p>
+                  </div>
+                )}
+
                 {/* ── Submit / Cancel ── */}
                 <div className="flex items-center justify-end gap-3 pt-2 pb-8">
                   <button
@@ -321,10 +373,25 @@ export default function RegisterCase() {
                   </button>
                   <button
                     type="submit"
-                    className="relative flex items-center gap-2 px-8 py-3 bg-[#c02525] text-white text-base font-bold rounded-lg overflow-hidden shadow-[0_10px_15px_-3px_rgba(31,58,137,0.2),0_4px_6px_-4px_rgba(31,58,137,0.2)] hover:bg-[#a81f1f] transition-colors"
+                    disabled={loading || !!caseResult}
+                    className="relative flex items-center gap-2 px-8 py-3 bg-[#c02525] text-white text-base font-bold rounded-lg overflow-hidden shadow-[0_10px_15px_-3px_rgba(31,58,137,0.2),0_4px_6px_-4px_rgba(31,58,137,0.2)] hover:bg-[#a81f1f] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Submit Case
-                    <span className="material-symbols-outlined text-[18px]">send</span>
+                    {loading ? (
+                      <>
+                        <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                        Submitting…
+                      </>
+                    ) : caseResult ? (
+                      <>
+                        <span className="material-symbols-outlined text-[18px]">check</span>
+                        Submitted
+                      </>
+                    ) : (
+                      <>
+                        Submit Case
+                        <span className="material-symbols-outlined text-[18px]">send</span>
+                      </>
+                    )}
                   </button>
                 </div>
 
@@ -332,30 +399,62 @@ export default function RegisterCase() {
             </div>
 
             {/* ══ RIGHT COLUMN ══ */}
-            <div className="w-[312px] flex-shrink-0 flex flex-col gap-6">
+            <div className="w-full lg:w-[312px] lg:flex-shrink-0 flex flex-col gap-6">
 
               {/* Token Generation card */}
-              <div className="relative bg-[#ecfdf5] border border-[#a7f3d0] rounded-xl p-5 overflow-hidden">
-                {/* Faint bg icon */}
+              <div className={`relative rounded-xl p-5 overflow-hidden border ${caseResult
+                ? 'bg-[#ecfdf5] border-[#a7f3d0]'
+                : 'bg-[#ecfdf5] border-[#a7f3d0]'
+                }`}>
                 <div className="absolute top-1 right-1 opacity-10 p-4">
                   <span className="material-symbols-outlined text-[80px] text-emerald-600">token</span>
                 </div>
 
                 <div className="relative flex flex-col gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#047857] text-[20px]">verified</span>
-                    <span className="text-[#047857] font-bold text-sm tracking-[0.7px] uppercase">System Ready</span>
+                    <span className="material-symbols-outlined text-[#047857] text-[20px]">
+                      {caseResult ? 'check_circle' : 'verified'}
+                    </span>
+                    <span className="text-[#047857] font-bold text-sm tracking-[0.7px] uppercase">
+                      {caseResult ? 'Case Registered' : 'System Ready'}
+                    </span>
                   </div>
                   <h3 className="text-[#064e3b] font-bold text-[18px] leading-7">Token Generation</h3>
                   <p className="text-[#065f46] text-sm leading-5">
-                    Upon submission, a unique tracking ID will be generated automatically.
+                    {caseResult
+                      ? 'Case successfully created. Use this token to track the case.'
+                      : 'Upon submission, a unique tracking ID will be generated automatically.'}
                   </p>
                   <div className="flex items-center justify-between bg-white border border-[#d1fae5] rounded px-3 py-3 mt-1">
                     <span className="text-[#047857] font-bold text-[18px] leading-7" style={{ fontFamily: 'Liberation Mono, monospace' }}>
-                      DAC-2026-XXXX
+                      {caseResult ? caseResult.token : 'DAC-2026-XXXX'}
                     </span>
-                    <span className="material-symbols-outlined text-[#047857] text-[20px]">content_copy</span>
+                    {caseResult && (
+                      <button
+                        type="button"
+                        title="Copy token"
+                        onClick={() => navigator.clipboard.writeText(caseResult.token)}
+                      >
+                        <span className="material-symbols-outlined text-[#047857] text-[20px]">content_copy</span>
+                      </button>
+                    )}
                   </div>
+
+                  {/* Inline penalty summary */}
+                  {caseResult && (
+                    <div className="grid grid-cols-3 gap-2 mt-1">
+                      {[
+                        { label: 'Level', value: `Level ${caseResult.offenseLevel}` },
+                        { label: 'Fine', value: `Rs. ${caseResult.fine.toLocaleString()}` },
+                        { label: 'Points', value: `-${caseResult.penaltyPoints} pts` },
+                      ].map(({ label, value }) => (
+                        <div key={label} className="bg-white border border-[#d1fae5] rounded p-2 text-center">
+                          <p className="text-[#047857] font-bold text-xs">{value}</p>
+                          <p className="text-[#065f46] text-[10px]">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -382,7 +481,7 @@ export default function RegisterCase() {
               </div>
 
               {/* Recent Logs */}
-              <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.05)] p-6 flex flex-col gap-4">
+              {/* <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.05)] p-6 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-[#0f172a] font-bold text-base leading-6">Recent Logs</h3>
                   <button className="text-[#1f3a89] text-xs font-semibold hover:underline">View All</button>
@@ -415,11 +514,11 @@ export default function RegisterCase() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </div> */}
 
             </div>
           </div>
-        </div>
+        </motion.div>
       </main>
     </div>
   );

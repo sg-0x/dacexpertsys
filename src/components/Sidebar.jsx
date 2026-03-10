@@ -1,20 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const adminSubItems = [
-  { to: '/admin-settings/rules-weights', label: 'Rules & Weights',  icon: 'balance'       },
-  { to: '/admin-settings/users',         label: 'User Management',  icon: 'manage_accounts' },
-  { to: '/admin-settings/system',        label: 'System Config',    icon: 'tune'           },
+  { to: '/admin-settings/rules-weights', label: 'Rules & Weights', icon: 'balance' },
+  { to: '/admin-settings/users', label: 'User Management', icon: 'manage_accounts' },
+  { to: '/admin-settings/system', label: 'System Config', icon: 'tune' },
 ];
 
 const mainNavItems = [
-  { to: '/dashboard',     label: 'Dashboard',     icon: 'dashboard'    },
+  { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
   { to: '/register-case', label: 'Register Case', icon: 'edit_document' },
-  { to: '/reports',       label: 'Reports',       icon: 'bar_chart'    },
+  { to: '/reports', label: 'Reports', icon: 'bar_chart' },
 ];
 
-export default function Sidebar() {
+// ── Shared nav content ────────────────────────────────────────────────────────
+function SidebarContent({ onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, logout } = useAuth();
@@ -22,12 +23,10 @@ export default function Sidebar() {
   const isAdminActive = location.pathname.startsWith('/admin-settings');
   const [adminOpen, setAdminOpen] = useState(isAdminActive);
 
-  // Derive display values from the logged-in Google user
   const displayName = currentUser?.displayName || currentUser?.email || 'User';
-  const photoURL    = currentUser?.photoURL || null;
-  const email       = currentUser?.email || '';
-  // Initials fallback: take first letter of each word in the display name
-  const initials    = displayName
+  const photoURL = currentUser?.photoURL || null;
+  const email = currentUser?.email || '';
+  const initials = displayName
     .split(' ')
     .map((w) => w[0])
     .join('')
@@ -39,21 +38,36 @@ export default function Sidebar() {
     navigate('/');
   };
 
+  // Close mobile drawer on route change
+  useEffect(() => {
+    if (onClose) onClose();
+  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <aside className="w-64 bg-white border-r border-[#e2e8f0] flex flex-col justify-between h-screen shrink-0">
+    <div className="flex flex-col justify-between h-full">
 
       {/* ── Top: Logo + Nav ── */}
       <div className="p-6 overflow-y-auto flex-1">
 
-        {/* Logo */}
+        {/* Logo row + mobile close button */}
         <div className="flex items-center gap-3 mb-8">
-          <div className="bg-[#1f3a89]/10 rounded-lg p-2 flex items-center justify-center text-[#1f3a89]">
-            <span className="material-symbols-outlined text-3xl">local_police</span>
+          <div className="rounded-lg overflow-hidden flex items-center justify-center shrink-0">
+            <img src="./logo.png" alt="DAC Logo" className="w-10 h-10 object-contain" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-[#0f172a] font-bold text-lg leading-tight">DAC System</h1>
-            <p className="text-[#64748b] text-xs font-medium">University Admin</p>
+            <p className="text-[#64748b] text-xs font-medium">Admin</p>
           </div>
+          {/* Close button — only visible on mobile */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="md:hidden text-[#64748b] hover:text-[#0f172a] transition-colors"
+              aria-label="Close menu"
+            >
+              <span className="material-symbols-outlined text-[22px]">close</span>
+            </button>
+          )}
         </div>
 
         {/* Nav */}
@@ -65,10 +79,9 @@ export default function Sidebar() {
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${
-                  isActive
-                    ? 'bg-[#1f3a89]/10 text-[#1f3a89]'
-                    : 'text-[#64748b] hover:bg-slate-50 hover:text-[#0f172a]'
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive
+                  ? 'bg-[#1f3a89]/10 text-[#1f3a89]'
+                  : 'text-[#64748b] hover:bg-slate-50 hover:text-[#0f172a]'
                 }`
               }
             >
@@ -87,11 +100,10 @@ export default function Sidebar() {
           <div>
             <button
               onClick={() => setAdminOpen((v) => !v)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${
-                isAdminActive
-                  ? 'bg-[#1f3a89]/10 text-[#1f3a89]'
-                  : 'text-[#64748b] hover:bg-slate-50 hover:text-[#0f172a]'
-              }`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isAdminActive
+                ? 'bg-[#1f3a89]/10 text-[#1f3a89]'
+                : 'text-[#64748b] hover:bg-slate-50 hover:text-[#0f172a]'
+                }`}
             >
               <span className={`material-symbols-outlined text-[20px] ${isAdminActive ? 'text-[#1f3a89]' : 'text-[#64748b]'}`}>
                 settings
@@ -104,9 +116,8 @@ export default function Sidebar() {
 
             {/* Sub-menu */}
             <div
-              className={`overflow-hidden transition-all duration-200 ${
-                adminOpen ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'
-              }`}
+              className={`overflow-hidden transition-all duration-200 ${adminOpen ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'
+                }`}
             >
               <div className="ml-3 pl-3 border-l-2 border-[#e2e8f0] flex flex-col gap-0.5">
                 {adminSubItems.map(({ to, label, icon }) => (
@@ -115,10 +126,9 @@ export default function Sidebar() {
                     to={to}
                     end
                     className={({ isActive }) =>
-                      `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                        isActive
-                          ? 'bg-[#1f3a89]/10 text-[#1f3a89] font-semibold'
-                          : 'text-[#64748b] hover:bg-slate-50 hover:text-[#0f172a]'
+                      `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${isActive
+                        ? 'bg-[#1f3a89]/10 text-[#1f3a89] font-semibold'
+                        : 'text-[#64748b] hover:bg-slate-50 hover:text-[#0f172a]'
                       }`
                     }
                   >
@@ -142,7 +152,6 @@ export default function Sidebar() {
       {/* ── Bottom: User ── */}
       <div className="p-6 border-t border-[#e2e8f0]">
         <div className="flex items-center gap-3">
-          {/* Avatar: real photo or initials fallback */}
           {photoURL ? (
             <img
               src={photoURL}
@@ -170,6 +179,59 @@ export default function Sidebar() {
           </button>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+}
+
+// ── Main exported Sidebar ─────────────────────────────────────────────────────
+export default function Sidebar() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
+
+  return (
+    <>
+      {/* ── Mobile top bar (hamburger) ── */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-[#e2e8f0] flex items-center gap-3 px-4 h-14">
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="text-[#64748b] hover:text-[#1f3a89] transition-colors"
+          aria-label="Open menu"
+        >
+          <span className="material-symbols-outlined text-[26px]">menu</span>
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center shrink-0">
+            <img src="./logo.png" alt="DAC Logo" className="w-7 h-7 object-contain" />
+          </div>
+          <span className="text-[#0f172a] font-bold text-base">DAC System</span>
+        </div>
+      </header>
+
+      {/* ── Desktop fixed sidebar ── */}
+      <aside className="hidden md:flex fixed top-0 left-0 w-64 h-screen bg-white border-r border-[#e2e8f0] flex-col z-30">
+        <SidebarContent />
+      </aside>
+
+      {/* ── Mobile drawer backdrop ── */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* ── Mobile drawer panel ── */}
+      <aside
+        className={`md:hidden fixed top-0 left-0 h-screen w-72 bg-white border-r border-[#e2e8f0] z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+      >
+        <SidebarContent onClose={() => setMobileOpen(false)} />
+      </aside>
+    </>
   );
 }

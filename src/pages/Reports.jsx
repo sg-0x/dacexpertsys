@@ -1,94 +1,96 @@
+import { motion } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
+import { pageVariants, listVariants, itemVariants } from '../lib/motion';
 
 // ── Icons ───────────────────────────────────────────────────────────────────
 const ScalesIcon = () => (
   <svg width="27" height="28.5" viewBox="0 0 27 28.5" fill="none">
-    <line x1="13.5" y1="2" x2="13.5" y2="26.5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-    <line x1="2" y1="8" x2="25" y2="8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-    <path d="M2 8 L6 18 Q2 18 6 18" stroke="white" strokeWidth="1.6" fill="none" strokeLinecap="round"/>
-    <path d="M2 18 Q4 13 6 18" stroke="white" strokeWidth="1.6" fill="rgba(255,255,255,0.2)" strokeLinecap="round"/>
-    <path d="M21 8 L25 18" stroke="white" strokeWidth="1.6" strokeLinecap="round"/>
-    <path d="M21 18 Q23 13 25 18" stroke="white" strokeWidth="1.6" fill="rgba(255,255,255,0.2)" strokeLinecap="round"/>
-    <line x1="9" y1="26.5" x2="18" y2="26.5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="13.5" y1="2" x2="13.5" y2="26.5" stroke="white" strokeWidth="2" strokeLinecap="round" />
+    <line x1="2" y1="8" x2="25" y2="8" stroke="white" strokeWidth="2" strokeLinecap="round" />
+    <path d="M2 8 L6 18 Q2 18 6 18" stroke="white" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+    <path d="M2 18 Q4 13 6 18" stroke="white" strokeWidth="1.6" fill="rgba(255,255,255,0.2)" strokeLinecap="round" />
+    <path d="M21 8 L25 18" stroke="white" strokeWidth="1.6" strokeLinecap="round" />
+    <path d="M21 18 Q23 13 25 18" stroke="white" strokeWidth="1.6" fill="rgba(255,255,255,0.2)" strokeLinecap="round" />
+    <line x1="9" y1="26.5" x2="18" y2="26.5" stroke="white" strokeWidth="2" strokeLinecap="round" />
   </svg>
 );
 
 const CheckCircleIcon = () => (
   <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-    <circle cx="7.5" cy="7.5" r="6.5" stroke="white" strokeWidth="1.3"/>
-    <path d="M4.5 7.5l2 2 4-4" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="7.5" cy="7.5" r="6.5" stroke="white" strokeWidth="1.3" />
+    <path d="M4.5 7.5l2 2 4-4" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const EditIcon = () => (
   <svg width="13.5" height="13.5" viewBox="0 0 14 14" fill="none">
-    <path d="M1 13h12" stroke="#64748b" strokeWidth="1.3" strokeLinecap="round"/>
-    <path d="M10.5 1.5l2 2-8 8H2.5v-2l8-8z" stroke="#64748b" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M1 13h12" stroke="#64748b" strokeWidth="1.3" strokeLinecap="round" />
+    <path d="M10.5 1.5l2 2-8 8H2.5v-2l8-8z" stroke="#64748b" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const DownloadIcon = () => (
   <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-    <path d="M6 1v7M3 5.5l3 3 3-3" stroke="#64748b" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M1 10.5h10" stroke="#64748b" strokeWidth="1.3" strokeLinecap="round"/>
+    <path d="M6 1v7M3 5.5l3 3 3-3" stroke="#64748b" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M1 10.5h10" stroke="#64748b" strokeWidth="1.3" strokeLinecap="round" />
   </svg>
 );
 
 const BackIcon = () => (
   <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-    <path d="M7.5 1.5l-5 4.5 5 4.5" stroke="#64748b" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M2.5 6h9" stroke="#64748b" strokeWidth="1.4" strokeLinecap="round"/>
+    <path d="M7.5 1.5l-5 4.5 5 4.5" stroke="#64748b" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M2.5 6h9" stroke="#64748b" strokeWidth="1.4" strokeLinecap="round" />
   </svg>
 );
 
 const GridIcon = () => (
   <svg width="20" height="18" viewBox="0 0 20 18" fill="none">
-    <rect x="1" y="1" width="7" height="7" rx="1" stroke="#1f3a89" strokeWidth="1.4"/>
-    <rect x="12" y="1" width="7" height="7" rx="1" stroke="#1f3a89" strokeWidth="1.4"/>
-    <rect x="1" y="10" width="7" height="7" rx="1" stroke="#1f3a89" strokeWidth="1.4"/>
-    <rect x="12" y="10" width="7" height="7" rx="1" stroke="#1f3a89" strokeWidth="1.4"/>
+    <rect x="1" y="1" width="7" height="7" rx="1" stroke="#1f3a89" strokeWidth="1.4" />
+    <rect x="12" y="1" width="7" height="7" rx="1" stroke="#1f3a89" strokeWidth="1.4" />
+    <rect x="1" y="10" width="7" height="7" rx="1" stroke="#1f3a89" strokeWidth="1.4" />
+    <rect x="12" y="10" width="7" height="7" rx="1" stroke="#1f3a89" strokeWidth="1.4" />
   </svg>
 );
 
 const WarningIcon = () => (
   <svg width="22" height="19" viewBox="0 0 22 19" fill="none">
-    <path d="M11 1L1 17h20L11 1z" stroke="#f97316" strokeWidth="1.5" strokeLinejoin="round"/>
-    <path d="M11 8v4" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round"/>
-    <circle cx="11" cy="14.5" r="0.75" fill="#f97316"/>
+    <path d="M11 1L1 17h20L11 1z" stroke="#f97316" strokeWidth="1.5" strokeLinejoin="round" />
+    <path d="M11 8v4" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" />
+    <circle cx="11" cy="14.5" r="0.75" fill="#f97316" />
   </svg>
 );
 
 const ExclamationIcon = () => (
   <svg width="4" height="18" viewBox="0 0 4 18" fill="none">
-    <path d="M2 1v11" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round"/>
-    <circle cx="2" cy="16" r="1.5" fill="#ef4444"/>
+    <path d="M2 1v11" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
+    <circle cx="2" cy="16" r="1.5" fill="#ef4444" />
   </svg>
 );
 
 const InfoCircleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-    <circle cx="10" cy="10" r="8.5" stroke="#3b82f6" strokeWidth="1.4"/>
-    <path d="M10 9v5" stroke="#3b82f6" strokeWidth="1.4" strokeLinecap="round"/>
-    <circle cx="10" cy="6.5" r="0.8" fill="#3b82f6"/>
+    <circle cx="10" cy="10" r="8.5" stroke="#3b82f6" strokeWidth="1.4" />
+    <path d="M10 9v5" stroke="#3b82f6" strokeWidth="1.4" strokeLinecap="round" />
+    <circle cx="10" cy="6.5" r="0.8" fill="#3b82f6" />
   </svg>
 );
 
 const UpTrendIcon = () => (
   <svg width="20" height="12" viewBox="0 0 20 12" fill="none">
-    <path d="M1 11L7 5L11 9L19 1" stroke="#ef4444" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M1 11L7 5L11 9L19 1" stroke="#ef4444" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const ShieldIcon = () => (
   <svg width="19" height="20" viewBox="0 0 19 20" fill="none">
-    <path d="M9.5 1L1 5v6c0 4.42 3.72 8.57 8.5 9.5C14.28 19.57 18 15.42 18 11V5L9.5 1z" stroke="#22c55e" strokeWidth="1.4" strokeLinejoin="round"/>
-    <path d="M6 10l2.5 2.5 4.5-5" stroke="#22c55e" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M9.5 1L1 5v6c0 4.42 3.72 8.57 8.5 9.5C14.28 19.57 18 15.42 18 11V5L9.5 1z" stroke="#22c55e" strokeWidth="1.4" strokeLinejoin="round" />
+    <path d="M6 10l2.5 2.5 4.5-5" stroke="#22c55e" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const ChevronRightIcon = () => (
   <svg width="5" height="8" viewBox="0 0 5 8" fill="none">
-    <path d="M1 1l3 3-3 3" stroke="#94a3b8" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M1 1l3 3-3 3" stroke="#94a3b8" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -159,14 +161,19 @@ const FACTORS = [
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function Reports() {
   return (
-    <div className="flex min-h-screen bg-[#f6f6f8] font-inter">
+    <div className="min-h-screen bg-[#f6f6f8] font-inter">
       <Sidebar />
 
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-[1152px] mx-auto px-8 py-16">
+      <main className="pt-14 md:pt-0 md:pl-64 overflow-y-auto">
+        <motion.div
+          variants={pageVariants}
+          initial="hidden"
+          animate="visible"
+          className="max-w-[1152px] mx-auto px-4 md:px-8 py-8 md:py-16"
+        >
 
           {/* ── Breadcrumb & Title ──────────────────────────────────────── */}
-          <div className="flex items-start justify-between mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
             <div>
               {/* Breadcrumb */}
               <div className="flex items-center gap-2 text-sm text-[#94a3b8] mb-3">
@@ -196,10 +203,15 @@ export default function Reports() {
           </div>
 
           {/* ── Main Grid ──────────────────────────────────────────────── */}
-          <div className="flex gap-8 items-start">
+          <motion.div
+            variants={listVariants}
+            initial="hidden"
+            animate="visible"
+            className="flex flex-col lg:flex-row gap-8 items-start"
+          >
 
             {/* ── Left Column ─────────────────────────────────────────── */}
-            <div className="flex-1 min-w-0 flex flex-col gap-6">
+            <motion.div variants={itemVariants} className="flex-1 min-w-0 flex flex-col gap-6">
 
               {/* Recommendation Hero Card */}
               <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm overflow-hidden">
@@ -213,9 +225,9 @@ export default function Reports() {
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[#1f3a89] text-sm font-bold uppercase tracking-widest mb-1">
+                    {/* <p className="text-[#1f3a89] text-sm font-bold uppercase tracking-widest mb-1">
                       AI Recommendation
-                    </p>
+                    </p> */}
                     <h2 className="text-[#0f172a] text-2xl font-bold leading-8 mb-4">
                       2-Week Academic Suspension
                     </h2>
@@ -261,10 +273,10 @@ export default function Reports() {
                   ))}
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* ── Right Column ────────────────────────────────────────── */}
-            <div className="w-[368px] shrink-0 flex flex-col gap-4 sticky top-8">
+            <motion.div variants={itemVariants} className="w-full lg:w-[368px] lg:shrink-0 flex flex-col gap-4">
 
               {/* Severity Score */}
               <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm px-6 py-5">
@@ -343,10 +355,10 @@ export default function Reports() {
                 </div>
               </div>
 
-            </div>
-          </div>
-        </div>
+            </motion.div>
+          </motion.div>
+        </motion.div>
       </main>
-    </div>
+    </div >
   );
 }
