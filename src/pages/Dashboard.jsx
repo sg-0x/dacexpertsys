@@ -448,6 +448,13 @@ export default function Dashboard() {
                             >
                               {row.action}
                             </button>
+                          ) : row.action === 'View Details' ? (
+                            <button
+                              onClick={() => navigate(`/view-case/${row.id.replace('#', '')}`)}
+                              className={`font-medium text-sm transition-colors ${row.actionClass}`}
+                            >
+                              {row.action}
+                            </button>
                           ) : (
                             <button className={`font-medium text-sm transition-colors ${row.actionClass}`}>
                               {row.action}
