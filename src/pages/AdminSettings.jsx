@@ -32,11 +32,11 @@ export default function AdminSettings() {
                   key={to}
                   to={to}
                   className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${isActive
-                    ? 'border-[#1f3a89] text-[#1f3a89]'
+                    ? 'border-[#4f46e5] text-[#4f46e5]'
                     : 'border-transparent text-[#64748b] hover:text-[#0f172a] hover:border-[#e2e8f0]'
                     }`}
                 >
-                  <span className={`material-symbols-outlined text-[18px] ${isActive ? 'text-[#1f3a89]' : 'text-[#94a3b8]'}`}>
+                  <span className={`material-symbols-outlined text-[18px] ${isActive ? 'text-[#4f46e5]' : 'text-[#94a3b8]'}`}>
                     {icon}
                   </span>
                   {label}

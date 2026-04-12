@@ -25,10 +25,10 @@ export default function RulesWeights() {
         <div>
           <h3 className="text-lg font-bold text-[#0f172a]">Rules &amp; Weight Management</h3>
           <p className="text-sm text-[#64748b] mt-0.5">
-            Configure the AI scoring rules and their severity weights used during case evaluation.
+            Configure the scoring rules and their severity weights used during case evaluation.
           </p>
         </div>
-        <button className="flex items-center gap-2 bg-[#1f3a89] hover:bg-[#162d6b] text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
+        <button className="flex items-center gap-2 bg-[#4f46e5] hover:bg-[#162d6b] text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors shadow-sm">
           <span className="material-symbols-outlined text-[18px]">add</span>
           Add Rule
         </button>
@@ -37,7 +37,7 @@ export default function RulesWeights() {
       {/* Stats row */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Total Rules',    value: RULES.length, icon: 'rule',          color: 'text-[#1f3a89]', bg: 'bg-[#eef2fb]' },
+          { label: 'Total Rules',    value: RULES.length, icon: 'rule',          color: 'text-[#4f46e5]', bg: 'bg-[#eef2fb]' },
           { label: 'Critical',       value: RULES.filter(r => r.severity === 'Critical').length, icon: 'crisis_alert', color: 'text-red-600',      bg: 'bg-red-50'    },
           { label: 'High',           value: RULES.filter(r => r.severity === 'High').length,     icon: 'warning',      color: 'text-orange-600',   bg: 'bg-orange-50' },
           { label: 'Avg Weight',     value: Math.round(RULES.reduce((s, r) => s + r.weight, 0) / RULES.length), icon: 'scale', color: 'text-emerald-600', bg: 'bg-emerald-50' },
@@ -83,7 +83,7 @@ export default function RulesWeights() {
                     <div className="flex items-center gap-3">
                       <div className="w-28 h-1.5 bg-[#f1f5f9] rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-[#1f3a89] rounded-full"
+                          className="h-full bg-[#4f46e5] rounded-full"
                           style={{ width: `${rule.weight}%` }}
                         />
                       </div>
@@ -97,7 +97,7 @@ export default function RulesWeights() {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-1.5 text-[#64748b] hover:text-[#1f3a89] hover:bg-[#eef2fb] rounded-lg transition-colors" title="Edit">
+                      <button className="p-1.5 text-[#64748b] hover:text-[#4f46e5] hover:bg-[#eef2fb] rounded-lg transition-colors" title="Edit">
                         <span className="material-symbols-outlined text-[18px]">edit</span>
                       </button>
                       <button className="p-1.5 text-[#64748b] hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Delete">

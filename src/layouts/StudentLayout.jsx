@@ -84,14 +84,14 @@ export default function StudentLayout() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search cases"
-                className="pl-10 pr-4 py-2 bg-slate-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-[#1f3a89]/20 w-64 placeholder:text-[#64748b]/70 text-[#0f172a] transition-shadow outline-none"
+                className="pl-10 pr-4 py-2 bg-slate-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-[#4f46e5]/20 w-64 placeholder:text-[#64748b]/70 text-[#0f172a] transition-shadow outline-none"
               />
             </div>
 
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => setNotifOpen((value) => !value)}
-                className={`relative p-1.5 rounded-lg transition-colors ${notifOpen ? 'text-[#1f3a89] bg-[#1f3a89]/10' : 'text-[#64748b] hover:text-[#1f3a89] hover:bg-slate-100'}`}
+                className={`relative p-1.5 rounded-lg transition-colors ${notifOpen ? 'text-[#4f46e5] bg-[#4f46e5]/10' : 'text-[#64748b] hover:text-[#4f46e5] hover:bg-slate-100'}`}
                 aria-label="Notifications"
               >
                 <span className="material-symbols-outlined text-[22px]">notifications</span>
@@ -114,7 +114,7 @@ export default function StudentLayout() {
                     {unreadCount > 0 && (
                       <button
                         onClick={markAllRead}
-                        className="text-[#1f3a89] text-xs font-medium hover:underline"
+                        className="text-[#4f46e5] text-xs font-medium hover:underline"
                       >
                         Mark all read
                       </button>
@@ -138,7 +138,7 @@ export default function StudentLayout() {
                           <p className="text-xs text-[#64748b] mt-0.5 leading-snug">{item.body}</p>
                           <p className="text-[10px] text-[#94a3b8] mt-1">{item.time}</p>
                         </div>
-                        {!item.read && <span className="h-2 w-2 rounded-full bg-[#1f3a89] shrink-0 mt-1.5" />}
+                        {!item.read && <span className="h-2 w-2 rounded-full bg-[#4f46e5] shrink-0 mt-1.5" />}
                       </button>
                     ))}
                   </div>
@@ -146,7 +146,7 @@ export default function StudentLayout() {
               )}
             </div>
 
-            <div className="h-9 w-9 rounded-full bg-[#1f3a89] flex items-center justify-center shrink-0 border-2 border-white shadow-sm">
+            <div className="h-9 w-9 rounded-full bg-[#4f46e5] flex items-center justify-center shrink-0 border-2 border-white shadow-sm">
               <span className="text-white text-xs font-bold">{avatarInitials}</span>
             </div>
           </div>

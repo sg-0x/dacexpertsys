@@ -18,7 +18,7 @@ export default function PreviousOffencesTable({ offences }) {
       {/* Card header */}
       <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#1f3a89] text-[18px]">history</span>
+          <span className="material-symbols-outlined text-[#4f46e5] text-[18px]">history</span>
           <h3 className="font-semibold text-[#0f172a] text-sm">Previous Offences</h3>
         </div>
         <span className="text-xs text-[#64748b] font-medium">{offences.length} record{offences.length !== 1 ? 's' : ''}</span>

@@ -47,7 +47,7 @@ export default function StudentCasesTable({ cases, onViewCase }) {
                 <td className="px-6 py-4 text-right">
                   <button
                     onClick={() => onViewCase(row.token)}
-                    className="font-medium text-sm transition-colors text-[#1f3a89] hover:text-[#3b5dc9]"
+                    className="font-medium text-sm transition-colors text-[#4f46e5] hover:text-[#3b5dc9]"
                   >
                     View Case
                   </button>

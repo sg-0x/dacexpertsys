@@ -18,14 +18,14 @@ function ProgressBar({ steps, currentStep }) {
   return (
     <div className="w-full space-y-2">
       <div className="flex items-center justify-between text-sm">
-        <span className="font-semibold text-[#1f3a89] truncate">{currentLabel}</span>
+        <span className="font-semibold text-[#5c56e9] truncate">{currentLabel}</span>
         <span className="text-[#64748b] font-medium whitespace-nowrap ml-2">
           Step {currentStep + 1} of {steps.length}
         </span>
       </div>
       <div className="relative h-5 rounded-full bg-[#e2e8f0] overflow-hidden shadow-inner">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-[#1f3a89] to-[#3b5fc0] transition-all duration-500 ease-in-out flex items-center justify-end pr-2"
+          className="h-full rounded-full bg-gradient-to-r from-[#5c56e9] to-[#3b5fc0] transition-all duration-500 ease-in-out flex items-center justify-end pr-2"
           style={{ width: `${Math.max(percentage, 4)}%` }}
         >
           {percentage >= 12 && (
@@ -34,7 +34,7 @@ function ProgressBar({ steps, currentStep }) {
         </div>
         {percentage < 12 && (
           <span
-            className="absolute top-1/2 -translate-y-1/2 text-xs font-bold text-[#1f3a89]"
+            className="absolute top-1/2 -translate-y-1/2 text-xs font-bold text-[#5c56e9]"
             style={{ left: `calc(${Math.max(percentage, 4)}% + 6px)` }}
           >
             {percentage}%
@@ -47,9 +47,9 @@ function ProgressBar({ steps, currentStep }) {
             key={index}
             className={`text-[10px] font-medium text-center transition-colors duration-300 ${
               index < currentStep
-                ? 'text-[#1f3a89]'
+                ? 'text-[#4f46e5]'
                 : index === currentStep
-                ? 'text-[#1f3a89] font-bold'
+                ? 'text-[#4f46e5] font-bold'
                 : 'text-[#94a3b8]'
             }`}
             style={{ width: `${100 / steps.length}%` }}
@@ -73,7 +73,7 @@ function Field({ label, children }) {
 }
 
 const inputCls =
-  'bg-[#f8fafc] border border-[#cbd5e1] rounded-lg px-3 py-2.5 text-[#0f172a] text-base placeholder:text-[#94a3b8] focus:outline-none focus:border-[#1f3a89] focus:ring-1 focus:ring-[#1f3a89] transition-colors';
+  'bg-[#f8fafc] border border-[#cbd5e1] rounded-lg px-3 py-2.5 text-[#0f172a] text-base placeholder:text-[#94a3b8] focus:outline-none focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] transition-colors';
 
 // ─── Step Sections ────────────────────────────────────────────────────────────
 
@@ -81,7 +81,7 @@ function StepStudentInfo({ form, set }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
-        <span className="material-symbols-outlined text-[#1f3a89] text-[18px]">person</span>
+        <span className="material-symbols-outlined text-[#4f46e5] text-[18px]">person</span>
         <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Student Information</h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
@@ -110,7 +110,7 @@ function StepIncidentDetails({ form, set }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
-        <span className="material-symbols-outlined text-[#1f3a89] text-[22px]">report</span>
+        <span className="material-symbols-outlined text-[#4f46e5] text-[22px]">report</span>
         <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Incident Details</h2>
       </div>
       <Field label="Offense Type">
@@ -145,7 +145,7 @@ function StepEvidence({ dragOver, setDragOver }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
-        <span className="material-symbols-outlined text-[#1f3a89] text-[20px]">attach_file</span>
+        <span className="material-symbols-outlined text-[#4f46e5] text-[20px]">attach_file</span>
         <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Evidence Upload</h2>
       </div>
       <p className="text-[#64748b] text-sm leading-5">
@@ -156,12 +156,12 @@ function StepEvidence({ dragOver, setDragOver }) {
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); }}
         className={`h-44 flex flex-col items-center justify-center gap-2 bg-[#f8fafc] border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
-          dragOver ? 'border-[#1f3a89] bg-[#f0f4ff]' : 'border-[#cbd5e1]'
+          dragOver ? 'border-[#4f46e5] bg-[#f0f4ff]' : 'border-[#cbd5e1]'
         }`}
       >
         <span className="material-symbols-outlined text-[#94a3b8] text-[36px]">upload_file</span>
         <p className="text-sm">
-          <span className="font-semibold text-[#1f3a89]">Click to upload</span>
+          <span className="font-semibold text-[#4f46e5]">Click to upload</span>
           <span className="text-[#64748b]"> or drag and drop</span>
         </p>
         <p className="text-[#64748b] text-xs">PDF, JPG, PNG or MP4 (MAX. 10MB)</p>
@@ -174,7 +174,7 @@ function StepAssessment({ intoxicated, setIntoxicated, cooperated, setCooperated
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-2 mb-1">
-        <span className="material-symbols-outlined text-[#1f3a89] text-[20px]">psychology</span>
+        <span className="material-symbols-outlined text-[#4f46e5] text-[20px]">psychology</span>
         <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Incident Assessment</h2>
       </div>
       <p className="text-[#64748b] text-sm leading-5">
@@ -189,8 +189,8 @@ function StepAssessment({ intoxicated, setIntoxicated, cooperated, setCooperated
           {[{ value: true, label: 'Yes, evidence present' }, { value: false, label: 'No, sober' }].map(({ value, label }) => (
             <label key={String(value)} className="flex-1 cursor-pointer">
               <input type="radio" className="sr-only" checked={intoxicated === value} onChange={() => setIntoxicated(value)} />
-              <div className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${intoxicated === value ? 'bg-[#f0f4ff] border-[#1f3a89]' : 'bg-white border-[#e2e4ea]'}`}>
-                <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${intoxicated === value ? 'border-[#1f3a89] bg-[#1f3a89]' : 'border-[#cbd5e1]'}`}>
+              <div className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${intoxicated === value ? 'bg-[#f0f4ff] border-[#4f46e5]' : 'bg-white border-[#e2e4ea]'}`}>
+                <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${intoxicated === value ? 'border-[#4f46e5] bg-[#4f46e5]' : 'border-[#cbd5e1]'}`}>
                   {intoxicated === value && <div className="w-2 h-2 rounded-full bg-white" />}
                 </div>
                 <span className="text-[#334155] text-base font-medium">{label}</span>
@@ -209,7 +209,7 @@ function StepAssessment({ intoxicated, setIntoxicated, cooperated, setCooperated
             const val = opt === 'Yes';
             return (
               <button key={opt} type="button" onClick={() => setCooperated(val)}
-                className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${cooperated === val ? 'bg-white text-[#1f3a89] shadow-[0_1px_2px_rgba(0,0,0,0.05)]' : 'text-[#475569] hover:text-[#0f172a]'}`}>
+                className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${cooperated === val ? 'bg-white text-[#4f46e5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]' : 'text-[#475569] hover:text-[#0f172a]'}`}>
                 {opt}
               </button>
             );
@@ -224,11 +224,11 @@ function StepAssessment({ intoxicated, setIntoxicated, cooperated, setCooperated
         <div className="flex gap-4 pt-3">
           {[{ count: 1, label: '1st' }, { count: 2, label: '2nd' }, { count: 3, label: '3rd+' }].map(({ count, label }) => (
             <button key={count} type="button" onClick={() => setOffenseCount(count)}
-              className={`relative flex-1 flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${offenseCount === count ? 'bg-[#1f3a89]/5 border-[#1f3a89]' : 'border-[#e2e4ea] hover:bg-slate-50'}`}>
+              className={`relative flex-1 flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${offenseCount === count ? 'bg-[#4f46e5]/5 border-[#4f46e5]' : 'border-[#e2e4ea] hover:bg-slate-50'}`}>
               <span className="text-[#0f172a] font-bold text-2xl leading-8">{label}</span>
               <span className="text-[#64748b] text-xs">Offense</span>
               {offenseCount === count && (
-                <span className="material-symbols-outlined absolute top-3 right-3 text-[#1f3a89] text-[15px]">check_circle</span>
+                <span className="material-symbols-outlined absolute top-3 right-3 text-[#4f46e5] text-[15px]">check_circle</span>
               )}
             </button>
           ))}
@@ -245,7 +245,7 @@ function StepAssessment({ intoxicated, setIntoxicated, cooperated, setCooperated
           onChange={set('notes')}
           rows={3}
           placeholder="Enter any mitigating circumstances..."
-          className="bg-white border border-[#e2e4ea] rounded-lg px-3 py-3 text-[#0f172a] text-base placeholder:text-[#94a3b8] resize-y focus:outline-none focus:border-[#1f3a89] focus:ring-1 focus:ring-[#1f3a89] transition-colors"
+          className="bg-white border border-[#e2e4ea] rounded-lg px-3 py-3 text-[#0f172a] text-base placeholder:text-[#94a3b8] resize-y focus:outline-none focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] transition-colors"
         />
       </div>
     </div>
@@ -266,7 +266,7 @@ function StepReview({ form, intoxicated, cooperated, offenseCount }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
-        <span className="material-symbols-outlined text-[#1f3a89] text-[20px]">fact_check</span>
+        <span className="material-symbols-outlined text-[#4f46e5] text-[20px]">fact_check</span>
         <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Review Submission</h2>
       </div>
       <p className="text-[#64748b] text-sm leading-5">Please verify all details before submitting.</p>
@@ -320,7 +320,7 @@ function StepSubmit({ caseResult, loading, error, onSubmit, onNavigateDashboard 
         <button
           type="button"
           onClick={onNavigateDashboard}
-          className="px-8 py-3 bg-[#1f3a89] text-white text-base font-medium rounded-lg hover:bg-[#162d6b] transition-colors"
+          className="px-8 py-3 bg-[#4f46e5] text-white text-base font-medium rounded-lg hover:bg-[#162d6b] transition-colors"
         >
           Back to Dashboard
         </button>
@@ -331,7 +331,7 @@ function StepSubmit({ caseResult, loading, error, onSubmit, onNavigateDashboard 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
-        <span className="material-symbols-outlined text-[#1f3a89] text-[20px]">send</span>
+        <span className="material-symbols-outlined text-[#4f46e5] text-[20px]">send</span>
         <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Submit Case</h2>
       </div>
       <p className="text-[#64748b] text-sm leading-5">
@@ -432,7 +432,7 @@ export default function RegisterCase() {
 
           {/* Page header */}
           <div className="flex flex-col gap-2">
-            <h1 className="text-[#0f172a] text-[28px] md:text-[30px] font-black tracking-[-0.9px] leading-tight pt-4">
+            <h1 className="text-[#0f172a] text-[28px] md:text-[30px] font-black tracking-[-0.9px] leading-tight md:pt-10 pt-5">
               Register New Disciplinary Case
             </h1>
             <p className="text-[#64748b] text-base leading-7">
@@ -478,7 +478,7 @@ export default function RegisterCase() {
                       <button
                         type="button"
                         onClick={goNext}
-                        className="flex items-center gap-2 px-8 py-3 bg-[#1f3a89] text-white text-base font-medium rounded-lg shadow-[0_10px_15px_-3px_rgba(31,58,137,0.3)] hover:bg-[#162d6b] transition-colors"
+                        className="flex items-center gap-2 px-8 py-3 bg-[#5c56e9] text-white text-base font-medium rounded-lg shadow-[0_10px_15px_-3px_rgba(31,58,137,0.3)] hover:bg-[#4e49e4] transition-colors"
                       >
                         Next Step
                         <span className="material-symbols-outlined text-[14px]">arrow_forward</span>

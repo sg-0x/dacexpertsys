@@ -12,7 +12,7 @@ export default function IncidentDetailsCard({ incident }) {
     <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden">
       {/* Card header */}
       <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center gap-2">
-        <span className="material-symbols-outlined text-[#1f3a89] text-[18px]">report</span>
+        <span className="material-symbols-outlined text-[#4f46e5] text-[18px]">report</span>
         <h3 className="font-semibold text-[#0f172a] text-sm">Incident Details</h3>
       </div>
 
@@ -22,7 +22,7 @@ export default function IncidentDetailsCard({ incident }) {
           {fields.map(({ label, value, icon }) => (
             <div key={label} className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-lg bg-[#eef2fb] flex items-center justify-center shrink-0 mt-0.5">
-                <span className="material-symbols-outlined text-[#1f3a89] text-[16px]">{icon}</span>
+                <span className="material-symbols-outlined text-[#4f46e5] text-[16px]">{icon}</span>
               </div>
               <div>
                 <p className="text-[#94a3b8] text-xs font-medium uppercase tracking-wide mb-0.5">{label}</p>

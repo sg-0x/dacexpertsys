@@ -4,7 +4,7 @@ export default function StudentSummaryCards({ summary }) {
       label: 'Total Cases',
       value: summary.totalCases,
       bgIcon: 'folder_shared',
-      bgIconColor: 'text-[#1f3a89]',
+      bgIconColor: 'text-[#4f46e5]',
     },
     {
       label: 'Active Cases',

@@ -34,26 +34,12 @@ const EyeIcon = ({ open }) => open ? (
   </svg>
 );
 
-const DACLogoIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 23" fill="none" className="w-full h-full">
-    <path d="M3 22L14 2L25 22" stroke="#1f3a89" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M7 16H21" stroke="#1f3a89" strokeWidth="2.5" strokeLinecap="round" />
-  </svg>
-);
-
-// ── Assets ───────────────────────────────────────────────────────────────────
-const campusImage = './bg.png';
-const dacEmblem = 'http://localhost:3845/assets/49c8ea20f9d122fa96ed5a1c712fd1c6563ba023.svg';
-
-const ROLES = ['Warden', 'DSW', 'Admin', 'Students', 'DAC Committee'];
-
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState('');
   const [authError, setAuthError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -75,18 +61,15 @@ export default function Login() {
         console.error("UID missing from credentials", userCredential);
         return navigate("/dashboard");
       }
-      console.log("Logged in user UID:", uid);
       const userDoc = await getDoc(doc(db, "users", uid));
       if (userDoc.exists()) {
         const role = userDoc.data().role?.toLowerCase?.();
-        console.log("User role:", role);
         if (role === "student") navigate("/student");
         else if (role === "warden") navigate("/warden");
         else if (role === "dsw") navigate("/dsw");
         else if (role === "admin") navigate("/dashboard");
         else navigate("/dashboard");
       } else {
-        console.warn("User document not found in 'users' collection for UID:", uid);
         navigate("/dashboard");
       }
     } catch (err) {
@@ -123,53 +106,82 @@ export default function Login() {
   };
 
   return (
-    <div
-      className="min-h-screen font-inter relative flex items-center justify-center overflow-hidden"
-      style={{
-        background: campusImage
-          ? `url(${campusImage}) center/cover no-repeat`
-          : 'linear-gradient(135deg, #1f3a89 0%, #3b6fd4 60%, #7eb8f7 100%)',
-      }}
-    >
-      {/* Subtle scrim */}
-      <div className="absolute inset-0 bg-black/10" />
+    <div className="flex h-screen w-screen overflow-hidden font-sans bg-[#286dbf]">
 
-      {/* ── Floating Login Card ── */}
-      <motion.div
-        initial={{ opacity: 0, x: 40 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 40 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-[640px] bg-white/20 backdrop-blur-md rounded-2xl shadow-2xl p-8 mx-auto my-8"
+      {/* ── LEFT PANEL: Campus Image ── */}
+      <div
+        className="hidden lg:flex lg:w-[35%] xl:w-[45%] relative flex-col justify-between"
+        style={{
+          background: 'url(./bg.png) left/cover no-repeat',
+          backgroundColor: '#1a2a4a',
+        }}
       >
-        {/* ── Logo + Title ── */}
-        <div className="flex flex-col items-center gap-3 mb-6">
-          <div className="w-[80px] h-[80px] rounded-full bg-white border border-[#e2e8f0] shadow-sm flex items-center justify-center shrink-0 overflow-hidden">
+        {/* Dark gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0d1b3e]/80 via-[#0d1b3e]/20 to-transparent" />
+
+        {/* Logo top-center */}
+        <div className="relative z-10 flex flex-col items-center pt-[130px] w-full">
+          <div className="flex items-center justify-center shrink-0 overflow-hidden">
             <img
               src="./logo.png"
               alt="DAC emblem"
-              className="object-cover"
+              className="object-contain"
               onError={(e) => { e.target.style.display = 'none'; }}
             />
           </div>
-          <div>
-            <p className="text-[#1f3a89] text-xl font-extrabold uppercase">DAC Expert System</p>
-            <p className="text-black text-sm leading-tight mt-0.5 text-center">Disciplinary Action Committee</p>
-          </div>
         </div>
 
-        {/* ── Heading ── */}
-        <h1 className="text-[#0f172a] text-lg font-bold leading-tight mb-1">Login</h1>
-        <p className="text-black text-xs leading-5 mb-6">Sign in to access the DAC Expert System</p>
+        {/* Bottom text */}
+        {/* <div className="relative z-10 p-8 pb-10 w-full flex flex-col items-start">
+          <h2 className="text-white text-3xl font-bold leading-tight">
+            Disciplinary Action<br />Committee Portal
+          </h2>
+        </div> */}
+      </div>
 
-        {/* ── Form ── */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {/* ── RIGHT PANEL: Login Form ── */}
+      <div
+        className="flex-1 bg-white flex flex-col justify-center items-center px-8 sm:px-14 lg:px-16 xl:px-20 overflow-y-auto lg:rounded-tl-[90px]"
+      >
+        <div className="w-full max-w-[420px]">
 
-          {/* Email */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[#334155] text-sm font-semibold">Email</label>
+          {/* ── Heading ── */}
+          <h1 className="text-[#0f172a] text-3xl font-bold mb-1 tracking-tight">
+            Sign In
+          </h1>
+          <p className="text-[#64748b] text-sm mb-8">
+            Access the DAC Expert System portal
+          </p>
+
+          {/* ── Google Sign-In ── */}
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handleGoogleSignIn}
+            className="w-full flex items-center justify-center gap-3 bg-white border border-[#dde1ea] rounded-xl py-3 text-sm font-semibold text-[#0f172a] hover:bg-[#f8fafc] hover:border-[#c5cfe8] transition-all disabled:opacity-60 shadow-sm mb-6"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4" />
+              <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853" />
+              <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05" />
+              <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335" />
+            </svg>
+            Sign in with Google
+          </button>
+
+          {/* ── Divider ── */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex-1 h-px bg-[#e2e8f0]" />
+            <span className="text-xs text-[#94a3b8] font-medium">or sign in with email</span>
+            <div className="flex-1 h-px bg-[#e2e8f0]" />
+          </div>
+
+          {/* ── Form ── */}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
+            {/* Email */}
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
                 <MailIcon />
               </span>
               <input
@@ -177,17 +189,15 @@ export default function Login() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                className="w-full bg-white border border-[#dde1ea] rounded-xl pl-10 pr-3 py-3 text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#1f3a89] focus:ring-2 focus:ring-[#1f3a89]/20 transition-all"
+                placeholder="Email Address"
+                required
+                className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-xl pl-11 pr-4 py-3.5 text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none focus:bg-white focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/15 transition-all"
               />
             </div>
-          </div>
 
-          {/* Password */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[#334155] text-sm font-semibold">Password</label>
+            {/* Password */}
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
                 <LockIcon />
               </span>
               <input
@@ -196,102 +206,53 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                className="w-full bg-white border border-[#dde1ea] rounded-xl pl-10 pr-10 py-3 text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#1f3a89] focus:ring-2 focus:ring-[#1f3a89]/20 transition-all"
+                required
+                className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-xl pl-11 pr-12 py-3.5 text-sm text-[#0f172a] placeholder:text-[#94a3b8] focus:outline-none focus:bg-white focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/15 transition-all"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#64748b] transition-colors"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#64748b] transition-colors"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 <EyeIcon open={showPassword} />
               </button>
             </div>
-          </div>
 
-          {/* Error banner */}
-          {authError && (
-            <div className="flex items-center gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
-              <span className="material-symbols-outlined text-[17px] shrink-0">error</span>
-              {authError}
-            </div>
-          )}
-
-          {/* Submit */}
-          <button
-            id="sign-in-btn"
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#1f3a89] text-white text-base font-bold py-3 rounded-xl hover:bg-[#162d6b] active:bg-[#112260] transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md shadow-[#1f3a89]/30 mt-1"
-          >
-            {loading && (
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
+            {/* Error banner */}
+            {authError && (
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                <span className="material-symbols-outlined text-[17px] shrink-0">error</span>
+                {authError}
+              </div>
             )}
-            {loading ? 'Signing In…' : 'Login'}
-          </button>
-        </form>
 
-        {/* ── Role pills ── */}
-        {/* <div className="mt-5">
-          <p className="text-[#64748b] text-sm text-center mb-3">Login as:</p>
-          <div className="flex flex-wrap gap-2 justify-center">
-            {ROLES.map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRole(role === r ? '' : r)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${role === r
-                    ? 'bg-[#1f3a89] text-white border-[#1f3a89] shadow-sm'
-                    : 'bg-white text-[#334155] border-[#dde1ea] hover:border-[#1f3a89] hover:text-[#1f3a89]'
-                  }`}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-        </div> */}
+            {/* Submit */}
+            <button
+              id="sign-in-btn"
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#5c56e9] text-white text-sm font-bold py-3.5 rounded-xl hover:bg-[#01000b] active:bg-[#0f1c3a] transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md shadow-[#4f46e5]/20 mt-1"
+            >
+              {loading && (
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+              )}
+              {loading ? 'Signing In…' : 'Sign In'}
+            </button>
+          </form>
 
-        {/* ── Forgot password ── */}
-        {/* <div className="flex justify-center mt-4">
-          <a href="#" className="text-[#1f3a89] text-sm font-medium hover:underline">
-            Forgot password?
-          </a>
-        </div> */}
-
-        {/* ── Divider ── */}
-        <div className="flex items-center gap-3 my-4">
-          <div className="flex-1 h-px bg-[#e2e8f0]" />
-          <span className="text-xs text-black font-medium">or continue with</span>
-          <div className="flex-1 h-px bg-[#e2e8f0]" />
+          {/* ── Footer note ── */}
+          <p className="text-[#94a3b8] text-xs text-center leading-5 mt-6">
+            By signing in, you agree to the University's{' '}
+            <a href="#" className="text-[#4f46e5] hover:underline transition-colors">Privacy Policy</a>
+            {' '}and{' '}
+            <a href="#" className="text-[#4f46e5] hover:underline transition-colors">Terms of Service</a>.
+          </p>
         </div>
-
-        {/* ── Google Sign-In ── */}
-        <button
-          type="button"
-          disabled={loading}
-          onClick={handleGoogleSignIn}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-[#dde1ea] rounded-xl py-2.5 text-sm font-medium text-[#0f172a] hover:bg-[#f8fafc] transition-colors disabled:opacity-60 shadow-sm"
-        >
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4" />
-            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853" />
-            <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05" />
-            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335" />
-          </svg>
-          Sign in with Google
-        </button>
-
-        {/* ── Footer note ── */}
-        <p className="text-black text-xs text-center leading-4 mt-5">
-          By signing in, you agree to the University's{' '}
-          <a href="#" className="underline hover:text-[#64748b] transition-colors">Privacy Policy</a>
-          {' '}and{' '}
-          <a href="#" className="underline hover:text-[#64748b] transition-colors">Terms of Service</a>.
-        </p>
-      </motion.div>
+      </div>
     </div>
   );
 }

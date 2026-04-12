@@ -7,7 +7,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        inter: ['Inter', 'sans-serif'],
+        sans: ['"Google Sans"', 'sans-serif'],
+        inter: ['"Google Sans"', 'sans-serif'],
       },
       colors: {
         dac: {

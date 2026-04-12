@@ -45,14 +45,14 @@ export default function SystemConfig() {
       <div>
         <h3 className="text-lg font-bold text-[#0f172a]">System Configuration</h3>
         <p className="text-sm text-[#64748b] mt-0.5">
-          Manage rule engine policies and seed initial Firestore data.
+          Manage rule engine policies and seed initial data.
         </p>
       </div>
 
       {/* ── DAC Policy Table ─────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-[#e2e8f0] flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#1f3a89] text-[18px]">policy</span>
+          <span className="material-symbols-outlined text-[#4f46e5] text-[18px]">policy</span>
           <h4 className="font-semibold text-[#0f172a] text-sm">DAC Penalty Policy</h4>
         </div>
         <div className="overflow-x-auto">
@@ -87,7 +87,7 @@ export default function SystemConfig() {
       {/* ── Severity Score Thresholds ─────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm p-5 space-y-3">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#1f3a89] text-[18px]">bar_chart</span>
+          <span className="material-symbols-outlined text-[#4f46e5] text-[18px]">bar_chart</span>
           <h4 className="font-semibold text-[#0f172a] text-sm">Severity Score Thresholds</h4>
         </div>
         <div className="grid grid-cols-4 gap-3">
@@ -108,7 +108,7 @@ export default function SystemConfig() {
       {/* ── Seed Firestore ────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm p-5 space-y-4">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#1f3a89] text-[18px]">database</span>
+          <span className="material-symbols-outlined text-[#4f46e5] text-[18px]">database</span>
           <h4 className="font-semibold text-[#0f172a] text-sm">Database Seeding</h4>
         </div>
         <p className="text-sm text-[#64748b]">
@@ -135,7 +135,7 @@ export default function SystemConfig() {
           <button
             onClick={() => handleSeed(false)}
             disabled={seeding}
-            className="flex items-center gap-2 bg-[#1f3a89] hover:bg-[#162d6b] text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-[#4f46e5] hover:bg-[#162d6b] text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span className="material-symbols-outlined text-[18px]">
               {seeding ? 'progress_activity' : 'upload_file'}

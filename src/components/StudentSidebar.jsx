@@ -64,14 +64,14 @@ function SidebarContent({ onClose }) {
               to={to}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive
-                  ? 'bg-[#1f3a89]/10 text-[#1f3a89]'
+                  ? 'bg-[#4f46e5]/10 text-[#4f46e5]'
                   : 'text-[#64748b] hover:bg-slate-50 hover:text-[#0f172a]'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <span className={`material-symbols-outlined text-[20px] ${isActive ? 'text-[#1f3a89]' : 'text-[#64748b]'}`}>
+                  <span className={`material-symbols-outlined text-[20px] ${isActive ? 'text-[#4f46e5]' : 'text-[#64748b]'}`}>
                     {icon}
                   </span>
                   <span className="text-sm">{label}</span>
@@ -92,7 +92,7 @@ function SidebarContent({ onClose }) {
               className="h-10 w-10 rounded-full border-2 border-white shadow-sm shrink-0 object-cover"
             />
           ) : (
-            <div className="h-10 w-10 rounded-full bg-[#1f3a89] flex items-center justify-center shrink-0 border-2 border-white shadow-sm">
+            <div className="h-10 w-10 rounded-full bg-[#4f46e5] flex items-center justify-center shrink-0 border-2 border-white shadow-sm">
               <span className="text-white text-xs font-bold">{initials}</span>
             </div>
           )}
@@ -128,7 +128,7 @@ export default function StudentSidebar() {
       <header className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-[#e2e8f0] flex items-center gap-3 px-4 h-14">
         <button
           onClick={() => setMobileOpen(true)}
-          className="text-[#64748b] hover:text-[#1f3a89] transition-colors"
+          className="text-[#64748b] hover:text-[#4f46e5] transition-colors"
           aria-label="Open menu"
         >
           <span className="material-symbols-outlined text-[26px]">menu</span>

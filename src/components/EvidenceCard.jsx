@@ -18,7 +18,7 @@ export default function EvidenceCard({ files }) {
       {/* Card header */}
       <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#1f3a89] text-[18px]">attach_file</span>
+          <span className="material-symbols-outlined text-[#4f46e5] text-[18px]">attach_file</span>
           <h3 className="font-semibold text-[#0f172a] text-sm">Evidence</h3>
         </div>
         <span className="text-xs text-[#64748b] font-medium">{files.length} file{files.length !== 1 ? 's' : ''}</span>
@@ -38,7 +38,7 @@ export default function EvidenceCard({ files }) {
               return (
                 <div
                   key={i}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-[#e2e8f0] hover:border-[#1f3a89]/30 hover:bg-slate-50/60 transition-colors group"
+                  className="flex items-center gap-3 p-3 rounded-lg border border-[#e2e8f0] hover:border-[#4f46e5]/30 hover:bg-slate-50/60 transition-colors group"
                 >
                   <div className={`w-9 h-9 rounded-lg ${meta.bg} flex items-center justify-center shrink-0`}>
                     <span className={`material-symbols-outlined text-[20px] ${meta.color}`}>{meta.icon}</span>
@@ -48,7 +48,7 @@ export default function EvidenceCard({ files }) {
                     <p className="text-[#94a3b8] text-xs">{file.size} · {file.uploadedAt}</p>
                   </div>
                   <button
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-[#64748b] hover:text-[#1f3a89] hover:bg-[#eef2fb] rounded-lg"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-[#64748b] hover:text-[#4f46e5] hover:bg-[#eef2fb] rounded-lg"
                     title="Download"
                   >
                     <span className="material-symbols-outlined text-[18px]">download</span>

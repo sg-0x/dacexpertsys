@@ -13,7 +13,7 @@ export default function StudentDetailsCard({ student }) {
     <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden">
       {/* Card header */}
       <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center gap-2">
-        <span className="material-symbols-outlined text-[#1f3a89] text-[18px]">person</span>
+        <span className="material-symbols-outlined text-[#4f46e5] text-[18px]">person</span>
         <h3 className="font-semibold text-[#0f172a] text-sm">Student Details</h3>
       </div>
 

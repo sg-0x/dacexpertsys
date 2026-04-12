@@ -2,8 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Google Sans';
+  src: url('https://fonts.gstatic.com/s/googlesans/v29/4UaGrENHsxJlGDuGo1OIlL3Owp4.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  src: url('https://fonts.gstatic.com/s/googlesans/v29/4UabrENHsxJlGDuGo1OIlLU94YtzcwY.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Google Sans';
+  src: url('https://fonts.gstatic.com/s/googlesans/v29/4UabrENHsxJlGDuGo1OIlLV154tzcwY.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+}
+
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Google Sans', sans-serif;
   margin: 0;
   padding: 0;
 }

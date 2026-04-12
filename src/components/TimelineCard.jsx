@@ -1,18 +1,18 @@
 const stateStyles = {
   completed: {
-    dot:  'bg-[#1f3a89] border-[#1f3a89]',
+    dot:  'bg-[#4f46e5] border-[#4f46e5]',
     icon: 'check',
     iconColor: 'text-white',
-    line: 'bg-[#1f3a89]',
+    line: 'bg-[#4f46e5]',
     title: 'text-[#0f172a]',
-    badge: 'bg-[#eef2fb] text-[#1f3a89]',
+    badge: 'bg-[#eef2fb] text-[#4f46e5]',
   },
   active: {
-    dot:  'bg-white border-[#1f3a89] border-2',
+    dot:  'bg-white border-[#4f46e5] border-2',
     icon: 'radio_button_checked',
-    iconColor: 'text-[#1f3a89]',
+    iconColor: 'text-[#4f46e5]',
     line: 'bg-[#e2e8f0]',
-    title: 'text-[#1f3a89] font-semibold',
+    title: 'text-[#4f46e5] font-semibold',
     badge: 'bg-amber-50 text-amber-700',
   },
   upcoming: {
@@ -30,7 +30,7 @@ export default function TimelineCard({ events }) {
     <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden">
       {/* Card header */}
       <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center gap-2">
-        <span className="material-symbols-outlined text-[#1f3a89] text-[18px]">timeline</span>
+        <span className="material-symbols-outlined text-[#4f46e5] text-[18px]">timeline</span>
         <h3 className="font-semibold text-[#0f172a] text-sm">Case Timeline</h3>
       </div>
 

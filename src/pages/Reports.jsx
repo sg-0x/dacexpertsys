@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import { pageVariants, listVariants, itemVariants } from '../lib/motion';
 
@@ -45,10 +46,10 @@ const BackIcon = () => (
 
 const GridIcon = () => (
   <svg width="20" height="18" viewBox="0 0 20 18" fill="none">
-    <rect x="1" y="1" width="7" height="7" rx="1" stroke="#1f3a89" strokeWidth="1.4" />
-    <rect x="12" y="1" width="7" height="7" rx="1" stroke="#1f3a89" strokeWidth="1.4" />
-    <rect x="1" y="10" width="7" height="7" rx="1" stroke="#1f3a89" strokeWidth="1.4" />
-    <rect x="12" y="10" width="7" height="7" rx="1" stroke="#1f3a89" strokeWidth="1.4" />
+    <rect x="1" y="1" width="7" height="7" rx="1" stroke="#4f46e5" strokeWidth="1.4" />
+    <rect x="12" y="1" width="7" height="7" rx="1" stroke="#4f46e5" strokeWidth="1.4" />
+    <rect x="1" y="10" width="7" height="7" rx="1" stroke="#4f46e5" strokeWidth="1.4" />
+    <rect x="12" y="10" width="7" height="7" rx="1" stroke="#4f46e5" strokeWidth="1.4" />
   </svg>
 );
 
@@ -81,13 +82,6 @@ const UpTrendIcon = () => (
   </svg>
 );
 
-const ShieldIcon = () => (
-  <svg width="19" height="20" viewBox="0 0 19 20" fill="none">
-    <path d="M9.5 1L1 5v6c0 4.42 3.72 8.57 8.5 9.5C14.28 19.57 18 15.42 18 11V5L9.5 1z" stroke="#22c55e" strokeWidth="1.4" strokeLinejoin="round" />
-    <path d="M6 10l2.5 2.5 4.5-5" stroke="#22c55e" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
 const ChevronRightIcon = () => (
   <svg width="5" height="8" viewBox="0 0 5 8" fill="none">
     <path d="M1 1l3 3-3 3" stroke="#94a3b8" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -96,44 +90,82 @@ const ChevronRightIcon = () => (
 
 // ── Severity Gauge ─────────────────────────────────────────────────────────
 function SeverityGauge({ score = 85 }) {
-  // SVG arc gauge — semicircle
   const r = 44;
-  const cx = 50, cy = 52;
-  const circumference = Math.PI * r; // half circle
+  const circumference = Math.PI * r;
   const progress = (score / 100) * circumference;
-
-  // Color: 0-40 green, 41-70 orange, 71-100 red
   const color = score >= 71 ? '#ef4444' : score >= 41 ? '#f97316' : '#22c55e';
 
   return (
     <div className="flex flex-col items-center py-2">
       <svg width="100" height="60" viewBox="0 0 100 60">
-        {/* Background arc */}
-        <path
-          d={`M 6 52 A ${r} ${r} 0 0 1 94 52`}
-          fill="none" stroke="#f1f5f9" strokeWidth="10" strokeLinecap="round"
-        />
-        {/* Progress arc */}
-        <path
-          d={`M 6 52 A ${r} ${r} 0 0 1 94 52`}
-          fill="none"
-          stroke={color}
-          strokeWidth="10"
-          strokeLinecap="round"
-          strokeDasharray={`${progress} ${circumference}`}
-          style={{ transition: 'stroke-dasharray 0.6s ease' }}
-        />
-        {/* Score text */}
-        <text x="50" y="46" textAnchor="middle" fontSize="20" fontWeight="700" fill="#0f172a" fontFamily="Inter, sans-serif">
-          {score}
-        </text>
+        <path d={`M 6 52 A ${r} ${r} 0 0 1 94 52`} fill="none" stroke="#f1f5f9" strokeWidth="10" strokeLinecap="round" />
+        <path d={`M 6 52 A ${r} ${r} 0 0 1 94 52`} fill="none" stroke={color} strokeWidth="10" strokeLinecap="round" strokeDasharray={`${progress} ${circumference}`} style={{ transition: 'stroke-dasharray 0.6s ease' }} />
+        <text x="50" y="46" textAnchor="middle" fontSize="20" fontWeight="700" fill="#0f172a" fontFamily="Inter, sans-serif">{score}</text>
       </svg>
       <p className="text-[#94a3b8] text-xs mt-1">out of 100</p>
     </div>
   );
 }
 
-// ── Contributing factor rows ───────────────────────────────────────────────
+// ── MOCK DATA ─────────────────────────────────────────────────────────────
+const MOCK_CASES = [
+  {
+    id: '#4029',
+    studentName: 'John Doe',
+    studentId: '2023001',
+    offense: 'Plagiarism - Level 2',
+    date: 'Oct 24, 2026',
+    status: 'Pending Recommendation',
+    punishment: '2-Week Academic Suspension',
+    score: 85,
+    risk: 'High Risk'
+  },
+  {
+    id: '#4030',
+    studentName: 'Jane Smith',
+    studentId: '2023045',
+    offense: 'Exam Malpractice',
+    date: 'Oct 25, 2026',
+    status: 'Pending Recommendation',
+    punishment: 'Fail Grade in Course + Warning',
+    score: 92,
+    risk: 'Critical'
+  },
+  {
+    id: '#4031',
+    studentName: 'Robert Brown',
+    studentId: '2023102',
+    offense: 'Class Disruption',
+    date: 'Oct 26, 2026',
+    status: 'Pending Recommendation',
+    punishment: 'Formal Apology & 1-Week Probation',
+    score: 45,
+    risk: 'Moderate'
+  },
+  {
+    id: '#4032',
+    studentName: 'Emily White',
+    studentId: '2023089',
+    offense: 'Vandalism',
+    date: 'Oct 27, 2026',
+    status: 'Pending Recommendation',
+    punishment: 'Fine + 1-Month Campus Work',
+    score: 65,
+    risk: 'High'
+  },
+  {
+    id: '#4033',
+    studentName: 'Michael Green',
+    studentId: '2023111',
+    offense: 'Attendance Deficit',
+    date: 'Oct 27, 2026',
+    status: 'Pending Recommendation',
+    punishment: 'Official Warning',
+    score: 25,
+    risk: 'Low'
+  }
+];
+
 const FACTORS = [
   {
     Icon: WarningIcon,
@@ -160,205 +192,205 @@ const FACTORS = [
 
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function Reports() {
-  return (
-    <div className="min-h-screen bg-[#f6f6f8] font-inter">
-      <Sidebar />
+  const [selectedCase, setSelectedCase] = useState(null);
 
-      <main className="pt-14 md:pt-0 md:pl-64 overflow-y-auto">
-        <motion.div
-          variants={pageVariants}
-          initial="hidden"
-          animate="visible"
-          className="max-w-[1152px] mx-auto px-4 md:px-8 py-8 md:py-16"
-        >
+  const renderDetailView = () => (
+    <motion.div
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      className="max-w-[1152px] mx-auto px-4 md:px-8 py-8 md:py-16"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
+        <div>
+          <div className="flex items-center gap-2 text-sm text-[#94a3b8] mb-3">
+            <button onClick={() => setSelectedCase(null)} className="hover:text-[#4f46e5] transition-colors">Cases</button>
+            <ChevronRightIcon />
+            <span className="text-[#4f46e5] font-medium">Case {selectedCase.id}</span>
+            <ChevronRightIcon />
+            <span className="text-[#4f46e5] font-medium">Recommendation</span>
+          </div>
+          <h1 className="text-[#0f172a] text-[32px] font-bold leading-9 mb-2">
+            Recommendation Result
+          </h1>
+          <p className="text-[#64748b] text-lg leading-7">
+            Case {selectedCase.id} - {selectedCase.studentName} (Student ID: {selectedCase.studentId})
+          </p>
+        </div>
 
-          {/* ── Breadcrumb & Title ──────────────────────────────────────── */}
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
-            <div>
-              {/* Breadcrumb */}
-              <div className="flex items-center gap-2 text-sm text-[#94a3b8] mb-3">
-                <a href="/dashboard" className="hover:text-[#1f3a89] transition-colors">Cases</a>
-                <ChevronRightIcon />
-                <a href="/dashboard" className="hover:text-[#1f3a89] transition-colors">Case #4029</a>
-                <ChevronRightIcon />
-                <span className="text-[#1f3a89] font-medium">Recommendation</span>
+        <div className="flex gap-3 mt-2 shrink-0">
+          <button onClick={() => setSelectedCase(null)} className="flex items-center gap-2 border border-[#e2e8f0] bg-white text-[#64748b] text-sm font-medium px-4 py-2.5 rounded-lg hover:border-[#4f46e5] hover:text-[#4f46e5] transition-colors shadow-sm">
+            <BackIcon /> Back to Cases
+          </button>
+          <button className="flex items-center gap-2 border border-[#e2e8f0] bg-white text-[#64748b] text-sm font-medium px-4 py-2.5 rounded-lg hover:border-[#4f46e5] hover:text-[#4f46e5] transition-colors shadow-sm">
+            <DownloadIcon /> Download Report
+          </button>
+        </div>
+      </div>
+
+      <motion.div
+        variants={listVariants}
+        initial="hidden"
+        animate="visible"
+        className="flex flex-col lg:flex-row gap-8 items-start"
+      >
+        <motion.div variants={itemVariants} className="flex-1 min-w-0 flex flex-col gap-6">
+
+          <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm overflow-hidden">
+            <div className="h-2 bg-[#4f46e5] w-full" />
+            <div className="p-8 flex gap-6">
+              <div className="w-[59px] h-[60px] rounded-xl bg-[#4f46e5] flex items-center justify-center shrink-0">
+                <ScalesIcon />
               </div>
-              <h1 className="text-[#0f172a] text-[32px] font-bold leading-9 mb-2">
-                Recommendation Result
-              </h1>
-              <p className="text-[#64748b] text-lg leading-7">
-                Case #4029 - John Doe (Student ID: 2023001)
-              </p>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex gap-3 mt-2 shrink-0">
-              <button className="flex items-center gap-2 border border-[#e2e8f0] bg-white text-[#64748b] text-sm font-medium px-4 py-2.5 rounded-lg hover:border-[#1f3a89] hover:text-[#1f3a89] transition-colors shadow-sm">
-                <BackIcon /> Back to Case
-              </button>
-              <button className="flex items-center gap-2 border border-[#e2e8f0] bg-white text-[#64748b] text-sm font-medium px-4 py-2.5 rounded-lg hover:border-[#1f3a89] hover:text-[#1f3a89] transition-colors shadow-sm">
-                <DownloadIcon /> Download Report
-              </button>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-[#0f172a] text-2xl font-bold leading-8 mb-4">
+                  {selectedCase.punishment}
+                </h2>
+                <p className="text-[#64748b] text-sm leading-6 mb-6 max-w-[611px]">
+                  Based on the analysis of the incident report, severity of the offense ({selectedCase.offense}),
+                  and the student's prior disciplinary history, the system recommends this punishment.
+                </p>
+                <div className="flex gap-3">
+                  <button className="flex items-center gap-2 bg-[#4f46e5] text-white text-sm font-bold px-5 py-2.5 rounded-lg hover:bg-[#162d6b] transition-colors shadow-sm">
+                    <CheckCircleIcon /> Confirm & Apply
+                  </button>
+                  <button className="flex items-center gap-2 border border-[#e2e8f0] text-[#64748b] text-sm font-medium px-5 py-2.5 rounded-lg hover:border-[#4f46e5] hover:text-[#4f46e5] transition-colors">
+                    <EditIcon /> Modify Action
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* ── Main Grid ──────────────────────────────────────────────── */}
-          <motion.div
-            variants={listVariants}
-            initial="hidden"
-            animate="visible"
-            className="flex flex-col lg:flex-row gap-8 items-start"
-          >
-
-            {/* ── Left Column ─────────────────────────────────────────── */}
-            <motion.div variants={itemVariants} className="flex-1 min-w-0 flex flex-col gap-6">
-
-              {/* Recommendation Hero Card */}
-              <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm overflow-hidden">
-                {/* Blue top accent bar */}
-                <div className="h-2 bg-[#1f3a89] w-full" />
-                <div className="p-8 flex gap-6">
-                  {/* Icon circle */}
-                  <div className="w-[59px] h-[60px] rounded-xl bg-[#1f3a89] flex items-center justify-center shrink-0">
-                    <ScalesIcon />
+          <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm p-8">
+            <h3 className="text-[#0f172a] text-lg font-bold flex items-center gap-3 mb-6">
+              <GridIcon />
+              Contributing Factors
+            </h3>
+            <div className="flex flex-col gap-4">
+              {FACTORS.map(({ Icon, bg, border, title, detail }) => (
+                <div
+                  key={title}
+                  className={`flex gap-4 p-4 rounded-xl border ${bg} ${border}`}
+                >
+                  <div className="w-[22px] shrink-0 flex items-start justify-center pt-0.5">
+                    <Icon />
                   </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    {/* <p className="text-[#1f3a89] text-sm font-bold uppercase tracking-widest mb-1">
-                      AI Recommendation
-                    </p> */}
-                    <h2 className="text-[#0f172a] text-2xl font-bold leading-8 mb-4">
-                      2-Week Academic Suspension
-                    </h2>
-                    <p className="text-[#64748b] text-sm leading-6 mb-6 max-w-[611px]">
-                      Based on the analysis of the incident report, severity of the offense (Plagiarism - Level 2),
-                      and the student's prior disciplinary history, the system recommends a temporary suspension.
-                      This aligns with Rule 4.2 of the University Conduct Code.
-                    </p>
-
-                    {/* Actions */}
-                    <div className="flex gap-3">
-                      <button className="flex items-center gap-2 bg-[#1f3a89] text-white text-sm font-bold px-5 py-2.5 rounded-lg hover:bg-[#162d6b] transition-colors shadow-sm">
-                        <CheckCircleIcon /> Confirm &amp; Apply
-                      </button>
-                      <button className="flex items-center gap-2 border border-[#e2e8f0] text-[#64748b] text-sm font-medium px-5 py-2.5 rounded-lg hover:border-[#1f3a89] hover:text-[#1f3a89] transition-colors">
-                        <EditIcon /> Modify Action
-                      </button>
-                    </div>
+                  <div>
+                    <p className="text-[#0f172a] text-sm font-semibold mb-1">{title}</p>
+                    <p className="text-[#64748b] text-sm leading-5">{detail}</p>
                   </div>
                 </div>
-              </div>
-
-              {/* Contributing Factors */}
-              <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm p-8">
-                <h3 className="text-[#0f172a] text-lg font-bold flex items-center gap-3 mb-6">
-                  <GridIcon />
-                  Contributing Factors
-                </h3>
-                <div className="flex flex-col gap-4">
-                  {FACTORS.map(({ Icon, bg, border, title, detail }) => (
-                    <div
-                      key={title}
-                      className={`flex gap-4 p-4 rounded-xl border ${bg} ${border}`}
-                    >
-                      <div className="w-[22px] shrink-0 flex items-start justify-center pt-0.5">
-                        <Icon />
-                      </div>
-                      <div>
-                        <p className="text-[#0f172a] text-sm font-semibold mb-1">{title}</p>
-                        <p className="text-[#64748b] text-sm leading-5">{detail}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-
-            {/* ── Right Column ────────────────────────────────────────── */}
-            <motion.div variants={itemVariants} className="w-full lg:w-[368px] lg:shrink-0 flex flex-col gap-4">
-
-              {/* Severity Score */}
-              <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm px-6 py-5">
-                <p className="text-[#64748b] text-xs font-semibold uppercase tracking-widest text-center mb-1">
-                  Severity Score
-                </p>
-                <SeverityGauge score={85} />
-              </div>
-
-              {/* Risk Level */}
-              <div className="bg-white border-l-4 border-[#ef4444] rounded-xl shadow-sm px-6 py-5 border border-[#e2e8f0]">
-                <p className="text-[#94a3b8] text-xs font-semibold uppercase tracking-widest mb-2">
-                  Risk Level
-                </p>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-[#ef4444] text-2xl font-bold leading-none">High Risk</span>
-                  <UpTrendIcon />
-                </div>
-                <p className="text-[#94a3b8] text-xs">Requires immediate DAC attention.</p>
-              </div>
-
-              {/* AI Confidence */}
-              <div className="bg-white border-l-4 border-[#1f3a89] rounded-xl shadow-sm px-6 py-5 border border-[#e2e8f0]">
-                <p className="text-[#94a3b8] text-xs font-semibold uppercase tracking-widest mb-2">
-                  AI Confidence
-                </p>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-[#0f172a] text-2xl font-bold leading-none">98%</span>
-                  <ShieldIcon />
-                </div>
-                <p className="text-[#94a3b8] text-xs">High certainty based on rule set v4.2</p>
-              </div>
-
-              {/* Triggered Rules */}
-              <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm px-6 py-5">
-                <p className="text-[#0f172a] text-sm font-bold mb-4">Triggered Rules</p>
-                <div className="flex flex-col gap-4">
-                  {[
-                    { rule: 'Rule #402: Plagiarism', cat: 'Category: Academic Integrity' },
-                    { rule: 'Rule #105: Recidivism', cat: 'Category: General Conduct' },
-                  ].map(({ rule, cat }) => (
-                    <div key={rule}>
-                      <a
-                        href="#"
-                        className="text-[#1f3a89] text-sm font-semibold hover:underline block leading-tight"
-                      >
-                        {rule}
-                      </a>
-                      <p className="text-[#94a3b8] text-xs mt-0.5">{cat}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Similar Past Cases */}
-              <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm px-6 py-5">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-[#0f172a] text-sm font-bold">Similar Past Cases</p>
-                  <button className="text-[#1f3a89] text-xs font-medium hover:underline">View All</button>
-                </div>
-                <div className="flex flex-col gap-4">
-                  {[
-                    { id: '#392', name: 'Suspension (1 Week)', sub: '92% Match • 2 months ago', color: 'bg-purple-400' },
-                    { id: '#104', name: 'Suspension (2 Weeks)', sub: '88% Match • Last year', color: 'bg-green-500' },
-                  ].map(({ id, name, sub, color }) => (
-                    <div key={id} className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full ${color} text-white flex items-center justify-center text-xs font-bold shrink-0`}>
-                        {id}
-                      </div>
-                      <div>
-                        <p className="text-[#0f172a] text-sm font-semibold leading-tight">{name}</p>
-                        <p className="text-[#94a3b8] text-xs leading-tight">{sub}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </motion.div>
-          </motion.div>
+              ))}
+            </div>
+          </div>
         </motion.div>
+
+        <motion.div variants={itemVariants} className="w-full lg:w-[368px] lg:shrink-0 flex flex-col gap-4">
+
+          <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm px-6 py-5">
+            <p className="text-[#64748b] text-xs font-semibold uppercase tracking-widest text-center mb-1">
+              Severity Score
+            </p>
+            <SeverityGauge score={selectedCase.score} />
+          </div>
+
+          {/* Risk Level */}
+          <div className={`bg-white border-y border-r border-l-4 ${selectedCase.score >= 75 ? 'border-l-[#ef4444]' : selectedCase.score >= 45 ? 'border-l-[#f97316]' : 'border-l-[#22c55e]'} rounded-xl shadow-sm px-6 py-5 border-y-[#e2e8f0] border-r-[#e2e8f0]`}>
+            <p className="text-[#94a3b8] text-xs font-semibold uppercase tracking-widest mb-2">
+              Risk Level
+            </p>
+            <div className="flex items-center gap-3 mb-2">
+              <span className={`text-2xl font-bold leading-none ${selectedCase.score >= 75 ? 'text-[#ef4444]' : selectedCase.score >= 45 ? 'text-[#f97316]' : 'text-[#22c55e]'}`}>
+                {selectedCase.risk}
+              </span>
+              {selectedCase.score >= 75 && <UpTrendIcon />}
+            </div>
+            <p className="text-[#94a3b8] text-xs">
+              {selectedCase.score >= 75 ? "Requires immediate DAC attention." : "Standard review procedures apply."}
+            </p>
+          </div>
+
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
+
+  const renderListView = () => (
+    <motion.div
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      className="max-w-[1152px] mx-auto px-4 md:px-8 py-8 md:py-16"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-[#0f172a] text-[32px] font-bold leading-9 mb-2">AI Case Recommendations</h1>
+          <p className="text-[#64748b] text-lg leading-7">Select a case to view its AI-generated penalty recommendations.</p>
+        </div>
+      </div>
+
+      <motion.div
+        variants={listVariants}
+        initial="hidden"
+        animate="visible"
+        className="flex flex-col gap-4"
+      >
+        {MOCK_CASES.map((c) => (
+          <motion.div
+            key={c.id}
+            variants={itemVariants}
+            onClick={() => setSelectedCase(c)}
+            className="bg-white border border-[#e2e8f0] rounded-xl shadow-sm p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 cursor-pointer hover:border-[#4f46e5] hover:shadow-md transition-all group"
+          >
+            <div className="flex items-center gap-5">
+              <div className="w-12 h-12 rounded-full bg-[#f1f5f9] flex items-center justify-center text-lg font-bold text-[#64748b]">
+                {c.studentName.split(' ').map(n => n[0]).join('')}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-[#0f172a] group-hover:text-[#4f46e5] transition-colors">{c.id} - {c.studentName}</h3>
+                <p className="text-[#64748b] text-sm">
+                  <span className="font-medium text-[#475569]">{c.offense}</span> • ID: {c.studentId} • {c.date}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-right hidden md:block">
+                <p className="text-[#94a3b8] text-xs font-semibold uppercase tracking-widest mb-1">Status</p>
+                <p className="text-[#f97316] text-sm font-medium flex items-center gap-1.5 justify-end">
+                  <span className="w-2 h-2 rounded-full bg-[#f97316]" />
+                  {c.status}
+                </p>
+              </div>
+              <button className="hidden sm:flex border border-[#e2e8f0] bg-white text-[#4f46e5] text-sm font-medium px-4 py-2 rounded-lg group-hover:bg-[#4f46e5] group-hover:text-white transition-colors">
+                View Recommendation
+              </button>
+              <span className="text-[#94a3b8] group-hover:text-[#4f46e5] transition-colors">
+                <ChevronRightIcon />
+              </span>
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
+    </motion.div>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#f6f6f8] font-inter">
+      <Sidebar />
+      <main className="pt-14 md:pt-0 md:pl-64 overflow-y-auto">
+        <AnimatePresence mode="wait">
+          {selectedCase ? (
+            <motion.div key="detail" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+              {renderDetailView()}
+            </motion.div>
+          ) : (
+            <motion.div key="list" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+              {renderListView()}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
-    </div >
+    </div>
   );
 }

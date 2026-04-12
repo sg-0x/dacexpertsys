@@ -30,7 +30,7 @@ export default function StudentDashboard() {
         <h3 className="text-lg font-bold text-[#0f172a]">Penalty Points Summary</h3>
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#1f3a89] text-[18px]">policy</span>
+            <span className="material-symbols-outlined text-[#4f46e5] text-[18px]">policy</span>
             <h3 className="font-semibold text-[#0f172a] text-sm">Threshold Details</h3>
           </div>
 
@@ -59,14 +59,14 @@ export default function StudentDashboard() {
         <h3 className="text-lg font-bold text-[#0f172a]">Recent Activity</h3>
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#1f3a89] text-[18px]">history</span>
+            <span className="material-symbols-outlined text-[#4f46e5] text-[18px]">history</span>
             <h3 className="font-semibold text-[#0f172a] text-sm">Case Updates</h3>
           </div>
           <div className="p-6">
             <ul className="flex flex-col gap-3">
               {STUDENT_RECENT_ACTIVITY.map((item) => (
                 <li key={item} className="flex items-start gap-3 text-sm text-[#334155]">
-                  <span className="h-1.5 w-1.5 mt-2 rounded-full bg-[#1f3a89] shrink-0" />
+                  <span className="h-1.5 w-1.5 mt-2 rounded-full bg-[#4f46e5] shrink-0" />
                   <span>{item}</span>
                 </li>
               ))}

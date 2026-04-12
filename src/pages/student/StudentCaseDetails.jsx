@@ -12,7 +12,7 @@ function NotFound({ token, onBack }) {
       <p className="text-[#64748b] text-sm">No case with token #{token} exists.</p>
       <button
         onClick={onBack}
-        className="mt-2 flex items-center gap-2 bg-[#1f3a89] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#162d6b] transition-colors shadow-sm"
+        className="mt-2 flex items-center gap-2 bg-[#4f46e5] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#162d6b] transition-colors shadow-sm"
       >
         <span className="material-symbols-outlined text-[16px]">arrow_back</span>
         Back to My Cases
@@ -55,7 +55,7 @@ export default function StudentCaseDetails() {
       <div className="flex items-center gap-3 flex-wrap">
         <button
           onClick={() => navigate('/student/cases')}
-          className="flex items-center gap-1.5 text-[#64748b] hover:text-[#1f3a89] transition-colors text-sm font-medium"
+          className="flex items-center gap-1.5 text-[#64748b] hover:text-[#4f46e5] transition-colors text-sm font-medium"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
           <span className="hidden sm:inline">My Cases</span>
@@ -70,7 +70,7 @@ export default function StudentCaseDetails() {
         <div className="flex-1 min-w-0 flex flex-col gap-6">
           <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#1f3a89] text-[18px]">summarize</span>
+              <span className="material-symbols-outlined text-[#4f46e5] text-[18px]">summarize</span>
               <h3 className="font-semibold text-[#0f172a] text-sm">Case Summary</h3>
             </div>
             <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
@@ -85,7 +85,7 @@ export default function StudentCaseDetails() {
 
           <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#1f3a89] text-[18px]">report</span>
+              <span className="material-symbols-outlined text-[#4f46e5] text-[18px]">report</span>
               <h3 className="font-semibold text-[#0f172a] text-sm">Incident Details</h3>
             </div>
             <div className="p-6 flex flex-col gap-6">
@@ -111,7 +111,7 @@ export default function StudentCaseDetails() {
           {caseData.finalDecision && (
             <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#1f3a89] text-[18px]">verified</span>
+                <span className="material-symbols-outlined text-[#4f46e5] text-[18px]">verified</span>
                 <h3 className="font-semibold text-[#0f172a] text-sm">Final Decision</h3>
               </div>
               <div className="p-6 flex flex-col gap-6">
