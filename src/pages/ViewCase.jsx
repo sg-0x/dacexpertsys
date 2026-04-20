@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
@@ -8,124 +9,45 @@ import EvidenceCard from '../components/EvidenceCard';
 import CaseResolutionCard from '../components/CaseResolutionCard';
 import TimelineCard from '../components/TimelineCard';
 import { pageVariants, listVariants, itemVariants } from '../lib/motion';
+import { getCases, getUsers } from '../services/api';
 
-// ─── Dummy data keyed by token ─────────────────────────────────────────────────
-const DUMMY_RESOLVED_CASES = {
-  '2024-003': {
-    token: '#2024-003',
-    offenseType: 'Attendance',
-    severity: 'Low',
-    severityClass: 'bg-slate-100 text-slate-700',
-    resolvedOn: '15 Feb 2024',
+function toTitleCase(value = '') {
+  return String(value)
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
-    student: {
-      name: 'Robert Brown',
-      enrollment: '21EN007',
-      year: '3rd Year',
-      department: 'Engineering',
-      email: 'robert.brown@university.edu',
-      contact: '+91 87654 32109',
-      hostel: 'BSH',
-      room: 'C-112',
-      penaltyPoints: 10,
-    },
+function formatDate(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
-    previousOffences: [],
+function formatTime(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+}
 
-    incident: {
-      token: '#2024-003',
-      date: '20 Jan 2024',
-      time: '09:00 AM',
-      location: 'Engineering Block — Lecture Hall 3',
-      offenseType: 'Attendance',
-      reportedBy: 'Prof. R. Mehta',
-      description:
-        'Student recorded 34% attendance in the Engineering Mathematics course against the required minimum of 75%. Multiple warnings were issued during the semester (Nov 2023, Dec 2023) with no improvement. The case was escalated to the Warden following the end-of-semester review.',
-    },
+function buildResolvedTimeline(caseRow) {
+  const date = formatDate(caseRow.incident_date ?? caseRow.created_at);
+  return [
+    { title: 'Case Reported', date, state: 'completed', note: 'Case registered.' },
+    { title: 'Investigation Started', date, state: 'completed', note: 'Investigation completed.' },
+    { title: 'DAC Review', date, state: 'completed', note: 'Committee review completed.' },
+    { title: 'Decision Issued', date, state: 'completed', note: 'Resolution decision issued.' },
+    { title: 'Resolved', date, state: 'completed', note: 'Case closed.' },
+  ];
+}
 
-    evidence: [
-      { name: 'Attendance_Sheet_Jan.pdf', size: '420 KB', uploadedAt: '20 Jan 2024' },
-      { name: 'Warning_Letter_Dec.pdf',   size: '185 KB', uploadedAt: '05 Dec 2023' },
-    ],
-
-    resolution: {
-      resolvedBy:    'Dr. Amit Sharma',
-      role:          'Dean of Student Welfare',
-      date:          '15 Feb 2024',
-      fine:          '₹ 1,000',
-      penaltyPoints: '10 pts',
-      actionTaken:   'Written Warning',
-      remarks:
-        'Student admitted to the attendance violation and cited personal health issues as the cause. Given the first-time nature of the offense and supporting medical documentation, the committee decided on a written warning along with a compulsory counselling session. A repeat violation will result in debarment from end-semester exams.',
-    },
-
-    timeline: [
-      { title: 'Case Reported',         date: '20 Jan 2024', state: 'completed', note: 'Reported by Prof. R. Mehta.' },
-      { title: 'Investigation Started', date: '22 Jan 2024', state: 'completed', note: 'DSW office reviewed attendance records.' },
-      { title: 'DAC Review',            date: '10 Feb 2024', state: 'completed', note: 'Committee hearing held. Student present.' },
-      { title: 'Decision Issued',       date: '12 Feb 2024', state: 'completed', note: 'Written warning & counselling session ordered.' },
-      { title: 'Resolved',              date: '15 Feb 2024', state: 'completed', note: 'Case closed by Dean.' },
-    ],
-  },
-
-  '2024-005': {
-    token: '#2024-005',
-    offenseType: 'Disruption',
-    severity: 'Medium',
-    severityClass: 'bg-yellow-100 text-yellow-800',
-    resolvedOn: '01 Mar 2024',
-
-    student: {
-      name: 'Michael Green',
-      enrollment: '23BA022',
-      year: '1st Year',
-      department: 'Business Administration',
-      email: 'michael.green@university.edu',
-      contact: '+91 76543 21098',
-      hostel: 'BSH',
-      room: 'A-305',
-      penaltyPoints: 25,
-    },
-
-    previousOffences: [
-      { date: '03 Nov 2023', offenseType: 'Noise Violation', severity: 'Low', penaltyPoints: 5, status: 'Resolved' },
-    ],
-
-    incident: {
-      token: '#2024-005',
-      date: '14 Feb 2024',
-      time: '02:30 PM',
-      location: 'Library — Reading Room',
-      offenseType: 'Disruption',
-      reportedBy: 'Library Warden',
-      description:
-        'Student was involved in a verbal altercation with another student in the reading room, causing significant disruption to approximately 30 other students. Despite being asked twice to maintain decorum by library staff, the student continued the argument before being escorted out by security.',
-    },
-
-    evidence: [
-      { name: 'Incident_Report.pdf', size: '310 KB', uploadedAt: '14 Feb 2024' },
-      { name: 'CCTV_Snapshot.jpg',   size: '890 KB', uploadedAt: '15 Feb 2024' },
-    ],
-
-    resolution: {
-      resolvedBy:    'Prof. Neeta Joshi',
-      role:          'Warden, Block A',
-      date:          '01 Mar 2024',
-      fine:          '₹ 2,500',
-      penaltyPoints: '25 pts',
-      actionTaken:   'Community Service (10 hours)',
-      remarks:
-        'Student accepted responsibility during the hearing. Given prior noise violation, the committee imposed a fine and community service. Student has been informed that any further misconduct will result in hostel expulsion.',
-    },
-
-    timeline: [
-      { title: 'Case Reported',         date: '14 Feb 2024', state: 'completed', note: 'Reported by Library Warden.' },
-      { title: 'Investigation Started', date: '16 Feb 2024', state: 'completed', note: 'Security and witness statements collected.' },
-      { title: 'DAC Review',            date: '25 Feb 2024', state: 'completed', note: 'Hearing conducted. Student acknowledged incident.' },
-      { title: 'Decision Issued',       date: '28 Feb 2024', state: 'completed', note: 'Fine and community service imposed.' },
-      { title: 'Resolved',              date: '01 Mar 2024', state: 'completed', note: 'Case closed by Warden.' },
-    ],
-  },
+const severityClassMap = {
+  Critical: 'bg-red-100 text-red-800',
+  High: 'bg-orange-100 text-orange-800',
+  Medium: 'bg-yellow-100 text-yellow-800',
+  Low: 'bg-slate-100 text-slate-700',
 };
 
 // ─── Not found fallback ───────────────────────────────────────────────────────
@@ -152,8 +74,106 @@ function NotFound({ token, onBack }) {
 export default function ViewCase() {
   const { token } = useParams();
   const navigate = useNavigate();
+  const hasLoggedResponseRef = useRef(false);
+  const [caseData, setCaseData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const caseData = DUMMY_RESOLVED_CASES[token];
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError('');
+
+        const [casesResponse, usersResponse] = await Promise.all([getCases(), getUsers()]);
+
+        if (!hasLoggedResponseRef.current) {
+          console.log('ViewCase API response:', { cases: casesResponse, users: usersResponse });
+          hasLoggedResponseRef.current = true;
+        }
+
+        const matched = casesResponse.find((entry) => String(entry.id) === String(token));
+        if (!matched || String(matched.status || '').toLowerCase() !== 'resolved') {
+          if (mounted) setCaseData(null);
+          return;
+        }
+
+        const usersById = Object.fromEntries(usersResponse.map((user) => [String(user.id), user]));
+        const student = usersById[String(matched.student_id)] ?? {};
+        const reporter = usersById[String(matched.reported_by)] ?? null;
+        const resolver = usersById[String(matched.resolved_by)] ?? null;
+
+        const previousOffences = casesResponse
+          .filter((entry) => entry.student_id === matched.student_id && entry.id !== matched.id)
+          .map((entry) => ({
+            date: formatDate(entry.incident_date ?? entry.created_at),
+            offenseType: toTitleCase(entry.offense_type) || 'N/A',
+            severity: toTitleCase(entry.severity) || 'Low',
+            penaltyPoints: entry.penalty_points ?? 0,
+            status: toTitleCase(entry.status) || 'Pending',
+          }));
+
+        const severity = toTitleCase(matched.severity) || 'Low';
+        const points = matched.penalty_points ?? 0;
+
+        const mapped = {
+          token: `#${matched.id}`,
+          offenseType: toTitleCase(matched.offense_type) || 'N/A',
+          severity,
+          severityClass: severityClassMap[severity] ?? 'bg-slate-100 text-slate-700',
+          resolvedOn: formatDate(matched.created_at),
+          student: {
+            name: student.name || 'Unknown Student',
+            enrollment: student.enrollment_no || `ID-${matched.student_id}`,
+            year: student.year ? `${student.year} Year` : 'N/A',
+            department: student.program ? toTitleCase(student.program) : 'N/A',
+            email: student.email || 'N/A',
+            contact: student.contact || 'N/A',
+            hostel: student.hostel || 'N/A',
+            room: student.room || 'N/A',
+            penaltyPoints: student.total_points ?? points,
+          },
+          previousOffences,
+          incident: {
+            token: `#${matched.id}`,
+            date: formatDate(matched.incident_date ?? matched.created_at),
+            time: formatTime(matched.created_at),
+            location: matched.location || 'N/A',
+            offenseType: toTitleCase(matched.offense_type) || 'N/A',
+            reportedBy: reporter?.name || (matched.reported_by ? `User #${matched.reported_by}` : 'System'),
+            description: matched.description || 'No description available.',
+          },
+          evidence: [],
+          resolution: {
+            resolvedBy: resolver?.name || (matched.resolved_by ? `User #${matched.resolved_by}` : 'N/A'),
+            role: resolver?.role ? toTitleCase(resolver.role) : 'Committee',
+            date: formatDate(matched.created_at),
+            fine: 'N/A',
+            penaltyPoints: `${points} pts`,
+            actionTaken: points > 0 ? 'Penalty Assigned' : 'Warning',
+            remarks: matched.description || 'Case resolved as per committee decision.',
+          },
+          timeline: buildResolvedTimeline(matched),
+        };
+
+        if (mounted) setCaseData(mapped);
+      } catch (loadError) {
+        if (mounted) {
+          setError(loadError?.message || 'Failed to fetch resolved case details.');
+          setCaseData(null);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, [token]);
 
   return (
     <div className="min-h-screen bg-[#f9f9fb] font-sans antialiased">
@@ -211,7 +231,11 @@ export default function ViewCase() {
 
         {/* ── Body ── */}
         <div className="p-4 md:p-8 max-w-[1400px] mx-auto w-full">
-          {!caseData ? (
+          {loading ? (
+            <p className="text-[#64748b] text-sm">Loading...</p>
+          ) : error ? (
+            <p className="text-sm text-red-600">Error: {error}</p>
+          ) : !caseData ? (
             <NotFound token={token} onBack={() => navigate('/dashboard')} />
           ) : (
             <motion.div

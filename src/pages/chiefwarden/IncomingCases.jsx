@@ -1,74 +1,97 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import ChiefWardenSidebar from '../../components/ChiefWardenSidebar';
 import { pageVariants, itemVariants } from '../../lib/motion';
+import { getCases, getUsers } from '../../services/api';
 
-const CASES_DATA = [
-  {
-    id: 'CW-2024-001',
-    studentName: 'Priya Sharma',
-    offense: 'Late Night Entry',
-    severity: 'Medium',
-    severityClass: 'bg-yellow-100 text-yellow-700',
-    status: 'Escalated to Chief Warden',
-    statusDot: 'bg-blue-400',
-    date: '11 Apr 2026',
-  },
-  {
-    id: 'CW-2024-002',
-    studentName: 'Vikram Singh',
-    offense: 'Smoking in Hostel',
-    severity: 'High',
-    severityClass: 'bg-orange-100 text-orange-700',
-    status: 'Escalated to Chief Warden',
-    statusDot: 'bg-blue-400',
-    date: '11 Apr 2026',
-  },
-  {
-    id: 'CW-2024-004',
-    studentName: 'Rajesh Kumar',
-    offense: 'Alcohol Possession',
-    severity: 'High',
-    severityClass: 'bg-orange-100 text-orange-700',
-    status: 'Escalated to Chief Warden',
-    statusDot: 'bg-blue-400',
-    date: '10 Apr 2026',
-  },
-  {
-    id: 'CW-2024-005',
-    studentName: 'Meera Patel',
-    offense: 'Room Damage',
-    severity: 'Medium',
-    severityClass: 'bg-yellow-100 text-yellow-700',
-    status: 'Escalated to Chief Warden',
-    statusDot: 'bg-blue-400',
-    date: '10 Apr 2026',
-  },
-  {
-    id: 'CW-2024-006',
-    studentName: 'Arjun Reddy',
-    offense: 'Harassment',
-    severity: 'Critical',
-    severityClass: 'bg-red-100 text-red-700',
-    status: 'Escalated to Chief Warden',
-    statusDot: 'bg-blue-400',
-    date: '09 Apr 2026',
-  },
-];
+function toTitleCase(value = '') {
+  return String(value)
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatDate(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function severityClass(severity) {
+  if (severity === 'Critical') return 'bg-red-100 text-red-700';
+  if (severity === 'High') return 'bg-orange-100 text-orange-700';
+  if (severity === 'Medium') return 'bg-yellow-100 text-yellow-700';
+  return 'bg-slate-100 text-slate-600';
+}
 
 export default function IncomingCases() {
   const navigate = useNavigate();
+  const hasLoggedResponseRef = useRef(false);
   const [search, setSearch] = useState('');
   const [severityFilter, setSeverityFilter] = useState('All');
+  const [cases, setCases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const filtered = CASES_DATA.filter((c) => {
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError('');
+
+        const [casesResponse, usersResponse] = await Promise.all([getCases(), getUsers()]);
+
+        if (!hasLoggedResponseRef.current) {
+          console.log('Chief Warden IncomingCases API response:', { cases: casesResponse, users: usersResponse });
+          hasLoggedResponseRef.current = true;
+        }
+
+        const usersById = Object.fromEntries(usersResponse.map((user) => [String(user.id), user]));
+        const mapped = casesResponse
+          .filter((entry) => String(entry.status || '').toLowerCase() === 'dac_review')
+          .map((entry) => {
+            const student = usersById[String(entry.student_id)] ?? {};
+            const severity = toTitleCase(entry.severity);
+            return {
+              id: String(entry.id),
+              studentName: student.name || 'Unknown Student',
+              offense: toTitleCase(entry.offense_type) || 'N/A',
+              severity,
+              severityClass: severityClass(severity),
+              status: 'Escalated to Chief Warden',
+              statusDot: 'bg-blue-400',
+              date: formatDate(entry.incident_date ?? entry.created_at),
+            };
+          });
+
+        if (mounted) setCases(mapped);
+      } catch (loadError) {
+        if (mounted) {
+          setError(loadError?.message || 'Failed to fetch incoming cases.');
+          setCases([]);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const filtered = cases.filter((c) => {
     const matchesSearch =
       c.studentName.toLowerCase().includes(search.toLowerCase()) ||
       c.offense.toLowerCase().includes(search.toLowerCase()) ||
       c.id.toLowerCase().includes(search.toLowerCase());
     const matchesSeverity = severityFilter === 'All' || c.severity === severityFilter;
-    return matchesSearch && matchesSeverity && c.status === 'Escalated to Chief Warden';
+    return matchesSearch && matchesSeverity;
   });
 
   const severityOptions = ['All', 'Critical', 'High', 'Medium', 'Low'];
@@ -100,6 +123,8 @@ export default function IncomingCases() {
           <div className="flex flex-col gap-2">
             <h1 className="text-[#0f172a] text-2xl md:text-3xl font-bold tracking-tight">Incoming Cases</h1>
             <p className="text-[#64748b] text-sm">Review cases escalated by Wardens requiring your decision.</p>
+            {loading && <p className="text-[#64748b] text-sm">Loading...</p>}
+            {!!error && <p className="text-sm text-red-600">Error: {error}</p>}
           </div>
 
           <motion.div variants={itemVariants} className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">
@@ -175,7 +200,7 @@ export default function IncomingCases() {
             </div>
 
             <div className="flex items-center justify-between px-6 py-3.5 bg-[#f8fafc] border-t border-[#f1f5f9]">
-              <p className="text-xs text-[#94a3b8]">Showing <span className="font-semibold text-[#334155]">1–{filtered.length}</span> of <span className="font-semibold text-[#334155]">{CASES_DATA.length}</span> results</p>
+              <p className="text-xs text-[#94a3b8]">Showing <span className="font-semibold text-[#334155]">1–{filtered.length}</span> of <span className="font-semibold text-[#334155]">{cases.length}</span> results</p>
               <div className="flex gap-1.5">
                 <button className="px-3 py-1.5 text-xs border border-[#e2e8f0] rounded-lg bg-white text-[#64748b] hover:bg-slate-50 disabled:opacity-50 transition-colors">Previous</button>
                 <button className="px-3 py-1.5 text-xs border border-[#e2e8f0] rounded-lg bg-white text-[#64748b] hover:bg-slate-50 transition-colors">Next</button>

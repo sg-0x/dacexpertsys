@@ -1,87 +1,36 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChiefWardenSidebar from '../../components/ChiefWardenSidebar';
 import { pageVariants, listVariants, itemVariants } from '../../lib/motion';
+import { getCases, getUsers } from '../../services/api';
 
-const STAT_CARDS = [
-  {
-    label: 'Total Received Cases',
-    value: '89',
-    icon: 'folder_shared',
-    gradient: 'from-[#4f46e5] to-[#6366f1]',
-    iconBg: 'bg-white/20',
-  },
-  {
-    label: 'Pending Review',
-    value: '12',
-    icon: 'pending_actions',
-    gradient: 'from-[#f59e0b] to-[#fbbf24]',
-    iconBg: 'bg-white/20',
-  },
-  {
-    label: 'Escalated to DSW',
-    value: '45',
-    icon: 'gavel',
-    gradient: 'from-[#8b5cf6] to-[#a78bfa]',
-    iconBg: 'bg-white/20',
-  },
-  {
-    label: 'Resolved Cases',
-    value: '32',
-    icon: 'check_circle',
-    gradient: 'from-[#10b981] to-[#34d399]',
-    iconBg: 'bg-white/20',
-  },
+const AVATAR_STYLES = [
+  { avatarBg: 'bg-pink-100', avatarText: 'text-pink-700' },
+  { avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700' },
+  { avatarBg: 'bg-emerald-100', avatarText: 'text-emerald-700' },
+  { avatarBg: 'bg-cyan-100', avatarText: 'text-cyan-700' },
 ];
 
-const RECENT_CASES = [
-  {
-    id: 'CW-2024-001',
-    name: 'Priya Sharma',
-    dept: 'Computer Science',
-    initials: 'PS',
-    avatarBg: 'bg-pink-100',
-    avatarText: 'text-pink-700',
-    offense: 'Late Night Entry',
-    severity: 'Medium',
-    severityClass: 'bg-yellow-100 text-yellow-700',
-    statusDot: 'bg-blue-400',
-    status: 'Escalated to Chief Warden',
-    action: 'Review',
-    date: '11 Apr 2026',
-  },
-  {
-    id: 'CW-2024-002',
-    name: 'Vikram Singh',
-    dept: 'Electrical Engg',
-    initials: 'VS',
-    avatarBg: 'bg-indigo-100',
-    avatarText: 'text-indigo-700',
-    offense: 'Smoking in Hostel',
-    severity: 'High',
-    severityClass: 'bg-orange-100 text-orange-700',
-    statusDot: 'bg-blue-400',
-    status: 'Escalated to Chief Warden',
-    action: 'Review',
-    date: '11 Apr 2026',
-  },
-  {
-    id: 'CW-2024-003',
-    name: 'Ananya Reddy',
-    dept: 'Mechanical Engg',
-    initials: 'AR',
-    avatarBg: 'bg-emerald-100',
-    avatarText: 'text-emerald-700',
-    offense: 'Unauthorized Guest',
-    severity: 'Medium',
-    severityClass: 'bg-yellow-100 text-yellow-700',
-    statusDot: 'bg-purple-400',
-    status: 'Escalated to DSW',
-    action: 'View',
-    date: '10 Apr 2026',
-  },
-];
+function toTitleCase(value = '') {
+  return String(value)
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function severityClass(severity) {
+  if (severity === 'Critical') return 'bg-red-100 text-red-700';
+  if (severity === 'High') return 'bg-orange-100 text-orange-700';
+  if (severity === 'Medium') return 'bg-yellow-100 text-yellow-700';
+  return 'bg-slate-100 text-slate-600';
+}
+
+function statusMeta(status) {
+  if (status === 'Resolved') return { label: 'Resolved', dot: 'bg-emerald-400', action: 'View' };
+  if (status === 'Dac Review') return { label: 'Escalated to Chief Warden', dot: 'bg-blue-400', action: 'Review' };
+  return { label: status || 'Pending Review', dot: 'bg-purple-400', action: 'Review' };
+}
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -92,17 +41,95 @@ function getGreeting() {
 
 export default function ChiefWardenDashboard() {
   const navigate = useNavigate();
+  const hasLoggedResponseRef = useRef(false);
   const [search, setSearch] = useState('');
   const [selectedCase, setSelectedCase] = useState(null);
+  const [cases, setCases] = useState([]);
+  const [statCards, setStatCards] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const filtered = RECENT_CASES.filter(
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError('');
+
+        const [casesResponse, usersResponse] = await Promise.all([getCases(), getUsers()]);
+
+        if (!hasLoggedResponseRef.current) {
+          console.log('ChiefWardenDashboard API response:', { cases: casesResponse, users: usersResponse });
+          hasLoggedResponseRef.current = true;
+        }
+
+        const usersById = Object.fromEntries(usersResponse.map((user) => [String(user.id), user]));
+        const mappedCases = casesResponse.map((entry, index) => {
+          const student = usersById[String(entry.student_id)] ?? {};
+          const status = toTitleCase(entry.status);
+          const meta = statusMeta(status);
+          const severity = toTitleCase(entry.severity) || 'Low';
+          const name = student.name || 'Unknown Student';
+          const style = AVATAR_STYLES[index % AVATAR_STYLES.length];
+          return {
+            id: String(entry.id),
+            name,
+            dept: student.program ? toTitleCase(student.program) : 'N/A',
+            initials: name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase(),
+            avatarBg: style.avatarBg,
+            avatarText: style.avatarText,
+            offense: toTitleCase(entry.offense_type) || 'N/A',
+            severity,
+            severityClass: severityClass(severity),
+            statusDot: meta.dot,
+            status: meta.label,
+            action: meta.action,
+            date: new Date(entry.incident_date ?? entry.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          };
+        });
+
+        const total = mappedCases.length;
+        const pending = casesResponse.filter((entry) => ['pending', 'pending_review', 'dac_review'].includes(String(entry.status || '').toLowerCase())).length;
+        const escalatedDsw = casesResponse.filter((entry) => String(entry.status || '').toLowerCase() === 'investigation').length;
+        const resolved = casesResponse.filter((entry) => String(entry.status || '').toLowerCase() === 'resolved').length;
+
+        const cards = [
+          { label: 'Total Received Cases', value: String(total), icon: 'folder_shared', gradient: 'from-[#4f46e5] to-[#6366f1]', iconBg: 'bg-white/20' },
+          { label: 'Pending Review', value: String(pending), icon: 'pending_actions', gradient: 'from-[#f59e0b] to-[#fbbf24]', iconBg: 'bg-white/20' },
+          { label: 'Escalated to DSW', value: String(escalatedDsw), icon: 'gavel', gradient: 'from-[#8b5cf6] to-[#a78bfa]', iconBg: 'bg-white/20' },
+          { label: 'Resolved Cases', value: String(resolved), icon: 'check_circle', gradient: 'from-[#10b981] to-[#34d399]', iconBg: 'bg-white/20' },
+        ];
+
+        if (mounted) {
+          setCases(mappedCases);
+          setStatCards(cards);
+        }
+      } catch (loadError) {
+        if (mounted) {
+          setError(loadError?.message || 'Failed to fetch dashboard data.');
+          setCases([]);
+          setStatCards([]);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const filtered = cases.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.offense.toLowerCase().includes(search.toLowerCase()) ||
       c.id.toLowerCase().includes(search.toLowerCase())
   );
 
-  const selected = selectedCase ? RECENT_CASES.find((c) => c.id === selectedCase) : null;
+  const selected = selectedCase ? cases.find((c) => c.id === selectedCase) : null;
 
   return (
     <div className="min-h-screen bg-[#f0f2ff] font-sans antialiased">
@@ -159,7 +186,7 @@ export default function ChiefWardenDashboard() {
                 <p className="text-indigo-200 text-sm font-medium mb-1">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1">{getGreeting()}, Chief Warden</h1>
                 <p className="text-indigo-200 text-sm leading-relaxed mb-5">
-                  You have <span className="text-white font-semibold">12 cases pending review</span> and <span className="text-white font-semibold">45 cases escalated to DSW</span>.
+                  You have <span className="text-white font-semibold">{statCards[1]?.value ?? '0'} cases pending review</span> and <span className="text-white font-semibold">{statCards[2]?.value ?? '0'} cases escalated to DSW</span>.
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <Link
@@ -180,13 +207,16 @@ export default function ChiefWardenDashboard() {
               </div>
             </motion.div>
 
+            {loading && <p className="text-[#64748b] text-sm">Loading...</p>}
+            {!!error && <p className="text-sm text-red-600">Error: {error}</p>}
+
             <motion.div
               variants={listVariants}
               initial="hidden"
               animate="visible"
               className="grid grid-cols-2 lg:grid-cols-4 gap-4"
             >
-              {STAT_CARDS.map((s) => (
+              {statCards.map((s) => (
                 <motion.div
                   key={s.label}
                   variants={itemVariants}
@@ -282,7 +312,7 @@ export default function ChiefWardenDashboard() {
               </div>
 
               <div className="flex items-center justify-between px-6 py-3.5 bg-[#f8fafc] border-t border-[#f1f5f9]">
-                <p className="text-xs text-[#94a3b8]">Showing <span className="font-semibold text-[#334155]">1–3</span> of <span className="font-semibold text-[#334155]">89</span> results</p>
+                <p className="text-xs text-[#94a3b8]">Showing <span className="font-semibold text-[#334155]">1–{filtered.length}</span> of <span className="font-semibold text-[#334155]">{cases.length}</span> results</p>
                 <div className="flex gap-1.5">
                   <button className="px-3 py-1.5 text-xs border border-[#e2e8f0] rounded-lg bg-white text-[#64748b] hover:bg-slate-50 disabled:opacity-50 transition-colors">Previous</button>
                   <button className="px-3 py-1.5 text-xs border border-[#e2e8f0] rounded-lg bg-white text-[#64748b] hover:bg-slate-50 transition-colors">Next</button>

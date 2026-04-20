@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import WardenSidebar from '../../components/WardenSidebar';
+import { getUsers } from '../../services/api';
 
 const offenseOptions = [
   'Noise Complaint', 'Late Night Entry', 'Room Damage', 'Unauthorized Guest',
@@ -73,7 +74,24 @@ function Field({ label, children }) {
 const inputCls =
   'bg-[#f8fafc] border border-[#cbd5e1] rounded-lg px-3 py-2.5 text-[#0f172a] text-base placeholder:text-[#94a3b8] focus:outline-none focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] transition-colors';
 
-function StepStudentInfo({ form, set }) {
+function toTitleCase(value = '') {
+  return String(value)
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function toYearLabel(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+  if (/year/i.test(raw)) return raw;
+  const n = Number(raw);
+  if (Number.isNaN(n)) return raw;
+  const suffix = n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th';
+  return `${n}${suffix} Year`;
+}
+
+function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, lookupLoading, lookupError }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
@@ -81,21 +99,24 @@ function StepStudentInfo({ form, set }) {
         <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Student Information</h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+        <Field label="Enrollment Number">
+          <input
+            type="text"
+            value={form.enrollmentNumber}
+            onChange={onEnrollmentChange}
+            onBlur={onEnrollmentBlur}
+            placeholder="e.g. 22ME045"
+            className={inputCls}
+          />
+          {lookupLoading ? <p className="text-xs text-[#64748b]">Looking up student details...</p> : null}
+          {lookupError ? <p className="text-xs text-red-600">{lookupError}</p> : null}
+        </Field>
         <Field label="Student Name">
           <input
             type="text"
             value={form.studentName}
             onChange={set('studentName')}
             placeholder="e.g. Rahul Kumar"
-            className={inputCls}
-          />
-        </Field>
-        <Field label="Enrollment Number">
-          <input
-            type="text"
-            value={form.enrollmentNumber}
-            onChange={set('enrollmentNumber')}
-            placeholder="e.g. 22ME045"
             className={inputCls}
           />
         </Field>
@@ -336,6 +357,7 @@ function StepReview({ form, intoxicated, cooperated, repeated }) {
 
 export default function RegisterCase() {
   const navigate = useNavigate();
+  const usersCacheRef = useRef(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [showActions, setShowActions] = useState(false);
 
@@ -348,8 +370,51 @@ export default function RegisterCase() {
   const [cooperated, setCooperated] = useState(true);
   const [repeated, setRepeated] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState('');
 
   const set = (field) => (e) => setForm((p) => ({ ...p, [field]: e.target.value }));
+
+  const lookupStudentByEnrollment = async (enrollmentInput) => {
+    const enrollment = String(enrollmentInput || '').trim().toLowerCase();
+    if (!enrollment) return;
+
+    try {
+      setLookupLoading(true);
+      setLookupError('');
+
+      const users = usersCacheRef.current ?? await getUsers();
+      if (!usersCacheRef.current) usersCacheRef.current = users;
+
+      const user = users.find((entry) => String(entry.enrollment_no || '').trim().toLowerCase() === enrollment);
+      if (!user) {
+        setLookupError('No student found for this enrollment number.');
+        return;
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        studentName: user.name || prev.studentName,
+        department: user.program ? toTitleCase(user.program) : prev.department,
+        year: user.year ? toYearLabel(user.year) : prev.year,
+        hostel: user.hostel || prev.hostel,
+        room: user.room || prev.room,
+      }));
+    } catch (err) {
+      setLookupError(err?.message || 'Failed to fetch student details.');
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
+  const handleEnrollmentChange = (e) => {
+    setLookupError('');
+    setForm((p) => ({ ...p, enrollmentNumber: e.target.value }));
+  };
+
+  const handleEnrollmentBlur = () => {
+    lookupStudentByEnrollment(form.enrollmentNumber);
+  };
 
   const handleSubmit = () => {
     setShowActions(true);
@@ -369,7 +434,14 @@ export default function RegisterCase() {
   const isFirst = currentStep === 0;
 
   const stepContent = [
-    <StepStudentInfo form={form} set={set} />,
+    <StepStudentInfo
+      form={form}
+      set={set}
+      onEnrollmentChange={handleEnrollmentChange}
+      onEnrollmentBlur={handleEnrollmentBlur}
+      lookupLoading={lookupLoading}
+      lookupError={lookupError}
+    />,
     <StepIncidentDetails form={form} set={set} />,
     <StepEvidence dragOver={dragOver} setDragOver={setDragOver} />,
     <StepQuestionnaire

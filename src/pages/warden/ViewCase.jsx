@@ -1,7 +1,30 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import WardenSidebar from '../../components/WardenSidebar';
 import { pageVariants, listVariants, itemVariants } from '../../lib/motion';
+import { getCases, getUsers } from '../../services/api';
+
+function toTitleCase(value = '') {
+  return String(value)
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatDate(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function formatTime(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+}
 
 const DUMMY_CASES = {
   'WRD-2024-003': {
@@ -97,8 +120,94 @@ function NotFound({ token, onBack }) {
 export default function ViewCase() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const hasLoggedResponseRef = useRef(false);
+  const [liveCaseData, setLiveCaseData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const caseData = DUMMY_CASES[id];
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError('');
+
+        const [casesResponse, usersResponse] = await Promise.all([getCases(), getUsers()]);
+        if (!hasLoggedResponseRef.current) {
+          console.log('Warden ViewCase API response:', { cases: casesResponse, users: usersResponse });
+          hasLoggedResponseRef.current = true;
+        }
+
+        const matched = casesResponse.find((entry) => String(entry.id) === String(id));
+        if (!matched) {
+          if (mounted) setLiveCaseData(null);
+          return;
+        }
+
+        const usersById = Object.fromEntries(usersResponse.map((user) => [String(user.id), user]));
+        const student = usersById[String(matched.student_id)] ?? {};
+        const reporter = usersById[String(matched.reported_by)] ?? null;
+        const status = toTitleCase(matched.status);
+        const severity = toTitleCase(matched.severity);
+
+        const mapped = {
+          token: String(matched.id),
+          status: status === 'Resolved' ? 'Resolved (Warning)' : status,
+          statusDot: status === 'Resolved' ? 'bg-emerald-500' : 'bg-blue-500',
+          severity: severity || 'Low',
+          severityClass: severity === 'Critical' ? 'bg-red-100 text-red-700' : severity === 'High' ? 'bg-orange-100 text-orange-700' : severity === 'Medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-600',
+          student: {
+            name: student.name || 'Unknown Student',
+            enrollment: student.enrollment_no || `ID-${matched.student_id}`,
+            year: student.year ? `${student.year} Year` : 'N/A',
+            department: student.program ? toTitleCase(student.program) : 'N/A',
+            email: student.email || 'N/A',
+            contact: student.contact || 'N/A',
+            hostel: student.hostel || 'N/A',
+            room: student.room || 'N/A',
+          },
+          incident: {
+            token: String(matched.id),
+            date: formatDate(matched.incident_date ?? matched.created_at),
+            time: formatTime(matched.created_at),
+            location: matched.location || 'N/A',
+            offenseType: toTitleCase(matched.offense_type) || 'N/A',
+            reportedBy: reporter?.name || 'Warden',
+            description: matched.description || 'No description available.',
+          },
+          evidence: [],
+          timeline: [
+            { title: 'Case Reported', date: formatDate(matched.created_at), badge: 'Reported', state: 'completed', note: null },
+            { title: 'Investigation Started', date: formatDate(matched.created_at), badge: 'Completed', state: 'completed', note: null },
+            { title: 'Warning Issued', date: formatDate(matched.created_at), badge: 'Completed', state: 'completed', note: null },
+            { title: 'Case Resolved', date: formatDate(matched.created_at), badge: 'Resolved', state: 'completed', note: null },
+          ],
+          finalStatus: {
+            action: status === 'Resolved' ? 'Warning Issued' : status,
+            date: formatDate(matched.created_at),
+            notes: matched.description || 'Case closed.',
+          },
+        };
+
+        if (mounted) setLiveCaseData(mapped);
+      } catch (loadError) {
+        if (mounted) {
+          setError(loadError?.message || 'Failed to fetch case details.');
+          setLiveCaseData(null);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  const caseData = liveCaseData;
 
   return (
     <div className="min-h-screen bg-[#f9f9fb] font-sans antialiased">
@@ -143,6 +252,12 @@ export default function ViewCase() {
         </header>
 
         <div className="p-4 md:p-8 max-w-[1400px] mx-auto w-full">
+          {loading && !caseData ? (
+            <p className="text-[#64748b] text-sm mb-4">Loading...</p>
+          ) : null}
+          {!loading && error ? (
+            <p className="text-sm text-red-600 mb-4">Error: {error}</p>
+          ) : null}
           {!caseData ? (
             <NotFound token={id} onBack={() => navigate('/warden/cases')} />
           ) : (
