@@ -113,3 +113,54 @@ When creating or modifying features, adhere to the following principles:
    ```bash
    npm run build
    ```
+
+## Backend (Express + PostgreSQL)
+
+The project also includes an Express API in `backend/` connected to PostgreSQL via `pg`.
+
+### Environment Variables
+
+Add PostgreSQL values in `.env`:
+
+```env
+PG_HOST=localhost
+PG_PORT=5432
+PG_USER=postgres
+PG_DATABASE=dac_system
+PG_PASSWORD=your_password
+PORT=5000
+```
+
+### Initialize Database
+
+Run the SQL files in order:
+
+1. `database/schema.sql`
+2. `database/seed.sql`
+
+Example:
+
+```bash
+psql -U postgres -d dac_system -f database/schema.sql
+psql -U postgres -d dac_system -f database/seed.sql
+```
+
+### Run Backend
+
+```bash
+npm run server
+```
+
+For auto-reload during development:
+
+```bash
+npm run server:dev
+```
+
+### API Endpoints
+
+- `GET /health` - API liveness check
+- `GET /test` - PostgreSQL connection check
+- `GET /users` and `GET /api/users` - list users
+- `GET /cases` and `GET /api/cases` - list cases
+- `POST /cases` and `POST /api/cases` - create a case
