@@ -103,15 +103,6 @@ function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, look
         <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Student Information</h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-        <Field label="Student Name">
-          <input
-            type="text"
-            value={form.studentName}
-            onChange={set('studentName')}
-            placeholder="e.g. John Doe"
-            className={inputCls}
-          />
-        </Field>
         <Field label="Enrollment Number">
           <input
             type="text"
@@ -123,6 +114,15 @@ function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, look
           />
           {lookupLoading ? <p className="text-xs text-[#64748b]">Looking up student details...</p> : null}
           {lookupError ? <p className="text-xs text-red-600">{lookupError}</p> : null}
+        </Field>
+        <Field label="Student Name">
+          <input
+            type="text"
+            value={form.studentName}
+            onChange={set('studentName')}
+            placeholder="e.g. John Doe"
+            className={inputCls}
+          />
         </Field>
         <Field label="Department">
           <input
