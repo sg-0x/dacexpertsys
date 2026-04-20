@@ -3,123 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import { pageVariants, listVariants, itemVariants } from '../lib/motion';
+import { getCases, getUsers } from '../services/api';
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
-const STAT_CARDS = [
-  {
-    label: 'Total Cases',
-    value: '1,248',
-    icon: 'folder_shared',
-    gradient: 'from-[#4f46e5] to-[#6366f1]',
-    iconBg: 'bg-white/20',
-  },
-  {
-    label: 'Pending DAC Cases',
-    value: '45',
-    icon: 'pending_actions',
-    gradient: 'from-[#f59e0b] to-[#fbbf24]',
-    iconBg: 'bg-white/20',
-  },
-  {
-    label: 'High Severity',
-    value: '12',
-    icon: 'gavel',
-    gradient: 'from-[#ef4444] to-[#f87171]',
-    iconBg: 'bg-white/20',
-  },
-  {
-    label: 'Resolved Cases',
-    value: '890',
-    icon: 'check_circle',
-    gradient: 'from-[#10b981] to-[#34d399]',
-    iconBg: 'bg-white/20',
-  },
-];
-
-const CASES = [
-  {
-    id: '#2024-001',
-    name: 'John Doe',
-    dept: 'Comp Sci',
-    initials: 'JD',
-    avatarBg: 'bg-indigo-100',
-    avatarText: 'text-indigo-700',
-    offense: 'Plagiarism',
-    severity: 'Critical',
-    severityClass: 'bg-red-100 text-red-700',
-    statusDot: 'bg-yellow-400',
-    status: 'Pending Review',
-    action: 'Manage',
-    actionClass: 'text-[#4f46e5] hover:text-[#6366f1]',
-  },
-  {
-    id: '#2024-002',
-    name: 'Jane Smith',
-    dept: 'Arts & Humanities',
-    initials: 'JS',
-    avatarBg: 'bg-pink-100',
-    avatarText: 'text-pink-700',
-    offense: 'Vandalism',
-    severity: 'High',
-    severityClass: 'bg-orange-100 text-orange-700',
-    statusDot: 'bg-blue-400',
-    status: 'Investigation',
-    action: 'Manage',
-    actionClass: 'text-[#4f46e5] hover:text-[#6366f1]',
-  },
-  {
-    id: '#2024-003',
-    name: 'Robert Brown',
-    dept: 'Engineering',
-    initials: 'RB',
-    avatarBg: 'bg-emerald-100',
-    avatarText: 'text-emerald-700',
-    offense: 'Attendance',
-    severity: 'Low',
-    severityClass: 'bg-slate-100 text-slate-600',
-    statusDot: 'bg-emerald-400',
-    status: 'Resolved',
-    action: 'View Details',
-    actionClass: 'text-[#64748b] hover:text-[#4f46e5]',
-  },
-  {
-    id: '#2024-004',
-    name: 'Emily White',
-    dept: 'Law',
-    initials: 'EW',
-    avatarBg: 'bg-cyan-100',
-    avatarText: 'text-cyan-700',
-    offense: 'Exam Malpractice',
-    severity: 'Critical',
-    severityClass: 'bg-red-100 text-red-700',
-    statusDot: 'bg-purple-400',
-    status: 'DAC Review',
-    action: 'Manage',
-    actionClass: 'text-[#4f46e5] hover:text-[#6366f1]',
-  },
-  {
-    id: '#2024-005',
-    name: 'Michael Green',
-    dept: 'Business',
-    initials: 'MG',
-    avatarBg: 'bg-amber-100',
-    avatarText: 'text-amber-700',
-    offense: 'Disruption',
-    severity: 'Medium',
-    severityClass: 'bg-yellow-100 text-yellow-700',
-    statusDot: 'bg-emerald-400',
-    status: 'Resolved',
-    action: 'View Details',
-    actionClass: 'text-[#64748b] hover:text-[#4f46e5]',
-  },
-];
-
-const NEW_APPLICANTS = [
-  { name: 'John Doe',       role: 'Pending Review',  initials: 'JD', avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700' },
-  { name: 'Jane Smith',     role: 'Investigation',    initials: 'JS', avatarBg: 'bg-pink-100',   avatarText: 'text-pink-700'   },
-  { name: 'Emily White',    role: 'DAC Review',       initials: 'EW', avatarBg: 'bg-cyan-100',   avatarText: 'text-cyan-700'   },
-  { name: 'Robert Brown',   role: 'Resolved',         initials: 'RB', avatarBg: 'bg-emerald-100',avatarText: 'text-emerald-700'},
-  { name: 'Michael Green',  role: 'Resolved',         initials: 'MG', avatarBg: 'bg-amber-100',  avatarText: 'text-amber-700'  },
+const AVATAR_STYLES = [
+  { avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700' },
+  { avatarBg: 'bg-pink-100', avatarText: 'text-pink-700' },
+  { avatarBg: 'bg-cyan-100', avatarText: 'text-cyan-700' },
+  { avatarBg: 'bg-emerald-100', avatarText: 'text-emerald-700' },
+  { avatarBg: 'bg-amber-100', avatarText: 'text-amber-700' },
 ];
 
 const INITIAL_NOTIFICATIONS = [
@@ -138,13 +29,41 @@ function getGreeting() {
   return 'Good Evening';
 }
 
+function toTitleCase(value = '') {
+  return String(value)
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function severityClass(severity) {
+  if (severity === 'Critical') return 'bg-red-100 text-red-700';
+  if (severity === 'High') return 'bg-orange-100 text-orange-700';
+  if (severity === 'Medium') return 'bg-yellow-100 text-yellow-700';
+  return 'bg-slate-100 text-slate-600';
+}
+
+function statusDot(status) {
+  if (status === 'Pending Review' || status === 'Pending') return 'bg-yellow-400';
+  if (status === 'Investigation') return 'bg-blue-400';
+  if (status === 'Dac Review') return 'bg-purple-400';
+  if (status === 'Resolved') return 'bg-emerald-400';
+  return 'bg-slate-400';
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const navigate = useNavigate();
+  const hasLoggedResponseRef = useRef(false);
   const [search, setSearch]           = useState('');
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
   const [notifOpen, setNotifOpen]     = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
+  const [cases, setCases] = useState([]);
+  const [statCards, setStatCards] = useState([]);
+  const [newApplicants, setNewApplicants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const notifRef = useRef(null);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -157,17 +76,98 @@ export default function Dashboard() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError('');
+
+        const [casesResponse, usersResponse] = await Promise.all([getCases(), getUsers()]);
+
+        if (!hasLoggedResponseRef.current) {
+          console.log('Dashboard API response:', { cases: casesResponse, users: usersResponse });
+          hasLoggedResponseRef.current = true;
+        }
+
+        const usersById = Object.fromEntries(usersResponse.map((user) => [String(user.id), user]));
+        const mappedCases = casesResponse.map((entry, index) => {
+          const student = usersById[String(entry.student_id)] ?? {};
+          const status = toTitleCase(entry.status) || 'Pending Review';
+          const severity = toTitleCase(entry.severity) || 'Low';
+          const style = AVATAR_STYLES[index % AVATAR_STYLES.length];
+          const name = student.name || 'Unknown Student';
+          return {
+            id: `#${entry.id}`,
+            name,
+            dept: student.program ? toTitleCase(student.program) : 'N/A',
+            initials: name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase(),
+            avatarBg: style.avatarBg,
+            avatarText: style.avatarText,
+            offense: toTitleCase(entry.offense_type) || 'N/A',
+            severity,
+            severityClass: severityClass(severity),
+            statusDot: statusDot(status),
+            status,
+            action: status === 'Resolved' ? 'View Details' : 'Manage',
+          };
+        });
+
+        const total = casesResponse.length;
+        const pending = casesResponse.filter((entry) => ['pending', 'pending_review', 'dac_review', 'investigation'].includes(String(entry.status || '').toLowerCase())).length;
+        const highSeverity = casesResponse.filter((entry) => ['high', 'critical'].includes(String(entry.severity || '').toLowerCase())).length;
+        const resolved = casesResponse.filter((entry) => String(entry.status || '').toLowerCase() === 'resolved').length;
+
+        const cards = [
+          { label: 'Total Cases', value: String(total), icon: 'folder_shared', gradient: 'from-[#4f46e5] to-[#6366f1]', iconBg: 'bg-white/20' },
+          { label: 'Pending DAC Cases', value: String(pending), icon: 'pending_actions', gradient: 'from-[#f59e0b] to-[#fbbf24]', iconBg: 'bg-white/20' },
+          { label: 'High Severity', value: String(highSeverity), icon: 'gavel', gradient: 'from-[#ef4444] to-[#f87171]', iconBg: 'bg-white/20' },
+          { label: 'Resolved Cases', value: String(resolved), icon: 'check_circle', gradient: 'from-[#10b981] to-[#34d399]', iconBg: 'bg-white/20' },
+        ];
+
+        const applicants = mappedCases.slice(0, 5).map((entry) => ({
+          name: entry.name,
+          role: entry.status,
+          initials: entry.initials,
+          avatarBg: entry.avatarBg,
+          avatarText: entry.avatarText,
+        }));
+
+        if (mounted) {
+          setCases(mappedCases);
+          setStatCards(cards);
+          setNewApplicants(applicants);
+        }
+      } catch (loadError) {
+        if (mounted) {
+          setError(loadError?.message || 'Failed to fetch dashboard data.');
+          setCases([]);
+          setStatCards([]);
+          setNewApplicants([]);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const markAllRead = () => setNotifications((p) => p.map((n) => ({ ...n, read: true })));
   const markRead    = (id) => setNotifications((p) => p.map((n) => n.id === id ? { ...n, read: true } : n));
 
-  const filtered = CASES.filter(
+  const filtered = cases.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.offense.toLowerCase().includes(search.toLowerCase()) ||
       c.id.toLowerCase().includes(search.toLowerCase())
   );
 
-  const selected = selectedCase ? CASES.find((c) => c.id === selectedCase) : null;
+  const selected = selectedCase ? cases.find((c) => c.id === selectedCase) : null;
 
   return (
     <div className="min-h-screen bg-[#f0f2ff] font-sans antialiased">
@@ -290,7 +290,7 @@ export default function Dashboard() {
                 <p className="text-indigo-200 text-sm font-medium mb-1">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1">{getGreeting()}, Admin </h1>
                 <p className="text-indigo-200 text-sm leading-relaxed mb-5">
-                  You have <span className="text-white font-semibold">45 pending DAC cases</span> and <span className="text-white font-semibold">12 high-severity alerts</span> awaiting your review. Let's get started.
+                  You have <span className="text-white font-semibold">{statCards[1]?.value ?? '0'} pending DAC cases</span> and <span className="text-white font-semibold">{statCards[2]?.value ?? '0'} high-severity alerts</span> awaiting your review. Let's get started.
                 </p>
                 <Link
                   to="/register-case"
@@ -309,6 +309,9 @@ export default function Dashboard() {
               </div> */}
             </motion.div>
 
+            {loading && <p className="text-[#64748b] text-sm">Loading...</p>}
+            {!!error && <p className="text-sm text-red-600">Error: {error}</p>}
+
             {/* ── Stats Grid ── */}
             <motion.div
               variants={listVariants}
@@ -316,7 +319,7 @@ export default function Dashboard() {
               animate="visible"
               className="grid grid-cols-2 lg:grid-cols-4 gap-4"
             >
-              {STAT_CARDS.map((s) => (
+              {statCards.map((s) => (
                 <motion.div
                   key={s.label}
                   variants={itemVariants}
@@ -417,7 +420,7 @@ export default function Dashboard() {
 
               {/* Pagination */}
               <div className="flex items-center justify-between px-6 py-3.5 bg-[#f8fafc] border-t border-[#f1f5f9]">
-                <p className="text-xs text-[#94a3b8]">Showing <span className="font-semibold text-[#334155]">1–5</span> of <span className="font-semibold text-[#334155]">1,248</span> results</p>
+                <p className="text-xs text-[#94a3b8]">Showing <span className="font-semibold text-[#334155]">1–{filtered.length}</span> of <span className="font-semibold text-[#334155]">{cases.length}</span> results</p>
                 <div className="flex gap-1.5">
                   <button className="px-3 py-1.5 text-xs border border-[#e2e8f0] rounded-lg bg-white text-[#64748b] hover:bg-slate-50 disabled:opacity-50 transition-colors">Previous</button>
                   <button className="px-3 py-1.5 text-xs border border-[#e2e8f0] rounded-lg bg-white text-[#64748b] hover:bg-slate-50 transition-colors">Next</button>
@@ -566,7 +569,7 @@ export default function Dashboard() {
                     <button className="text-[10px] font-semibold text-[#4f46e5] bg-indigo-50 px-2 py-0.5 rounded-lg hover:bg-indigo-100 transition-colors">View All</button>
                   </div>
                   <div className="flex flex-col gap-2">
-                    {NEW_APPLICANTS.map((a, i) => (
+                    {newApplicants.map((a, i) => (
                       <div key={i} className="flex items-center justify-between gap-2 py-1.5">
                         <div className="flex items-center gap-2.5">
                           <div className={`h-8 w-8 rounded-full ${a.avatarBg} flex items-center justify-center ${a.avatarText} text-[11px] font-bold shrink-0`}>

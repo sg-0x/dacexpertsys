@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import { pageVariants, listVariants, itemVariants } from '../lib/motion';
+import { getCases, getUsers } from '../services/api';
 
 // ── Icons ───────────────────────────────────────────────────────────────────
 const ScalesIcon = () => (
@@ -107,64 +108,33 @@ function SeverityGauge({ score = 85 }) {
   );
 }
 
-// ── MOCK DATA ─────────────────────────────────────────────────────────────
-const MOCK_CASES = [
-  {
-    id: '#4029',
-    studentName: 'John Doe',
-    studentId: '2023001',
-    offense: 'Plagiarism - Level 2',
-    date: 'Oct 24, 2026',
-    status: 'Pending Recommendation',
-    punishment: '2-Week Academic Suspension',
-    score: 85,
-    risk: 'High Risk'
-  },
-  {
-    id: '#4030',
-    studentName: 'Jane Smith',
-    studentId: '2023045',
-    offense: 'Exam Malpractice',
-    date: 'Oct 25, 2026',
-    status: 'Pending Recommendation',
-    punishment: 'Fail Grade in Course + Warning',
-    score: 92,
-    risk: 'Critical'
-  },
-  {
-    id: '#4031',
-    studentName: 'Robert Brown',
-    studentId: '2023102',
-    offense: 'Class Disruption',
-    date: 'Oct 26, 2026',
-    status: 'Pending Recommendation',
-    punishment: 'Formal Apology & 1-Week Probation',
-    score: 45,
-    risk: 'Moderate'
-  },
-  {
-    id: '#4032',
-    studentName: 'Emily White',
-    studentId: '2023089',
-    offense: 'Vandalism',
-    date: 'Oct 27, 2026',
-    status: 'Pending Recommendation',
-    punishment: 'Fine + 1-Month Campus Work',
-    score: 65,
-    risk: 'High'
-  },
-  {
-    id: '#4033',
-    studentName: 'Michael Green',
-    studentId: '2023111',
-    offense: 'Attendance Deficit',
-    date: 'Oct 27, 2026',
-    status: 'Pending Recommendation',
-    punishment: 'Official Warning',
-    score: 25,
-    risk: 'Low'
-  }
-];
+function toTitleCase(value = '') {
+  return String(value)
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatDate(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+}
+
+function toRisk(score) {
+  if (score >= 85) return 'Critical';
+  if (score >= 65) return 'High Risk';
+  if (score >= 40) return 'Moderate';
+  return 'Low';
+}
+
+function toPunishment(points, severity) {
+  if (points >= 40 || severity === 'Critical') return '2-Week Academic Suspension';
+  if (points >= 25 || severity === 'High') return 'Fine + 1-Month Campus Work';
+  if (points >= 10 || severity === 'Medium') return 'Formal Apology & 1-Week Probation';
+  return 'Official Warning';
+}
 
 const FACTORS = [
   {
@@ -192,7 +162,62 @@ const FACTORS = [
 
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function Reports() {
+  const hasLoggedResponseRef = useRef(false);
   const [selectedCase, setSelectedCase] = useState(null);
+  const [cases, setCases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError('');
+
+        const [casesResponse, usersResponse] = await Promise.all([getCases(), getUsers()]);
+
+        if (!hasLoggedResponseRef.current) {
+          console.log('Reports API response:', { cases: casesResponse, users: usersResponse });
+          hasLoggedResponseRef.current = true;
+        }
+
+        const usersById = Object.fromEntries(usersResponse.map((user) => [String(user.id), user]));
+
+        const mappedCases = casesResponse.map((entry) => {
+          const student = usersById[String(entry.student_id)] ?? {};
+          const score = Number(entry.severity_score ?? entry.penalty_points ?? 0);
+          const severity = toTitleCase(entry.severity);
+          return {
+            id: `#${entry.id}`,
+            studentName: student.name || 'Unknown Student',
+            studentId: student.enrollment_no || `ID-${entry.student_id}`,
+            offense: toTitleCase(entry.offense_type) || 'N/A',
+            date: formatDate(entry.incident_date ?? entry.created_at),
+            status: 'Pending Recommendation',
+            punishment: toPunishment(Number(entry.penalty_points ?? 0), severity),
+            score,
+            risk: toRisk(score),
+          };
+        });
+
+        if (mounted) setCases(mappedCases);
+      } catch (loadError) {
+        if (mounted) {
+          setError(loadError?.message || 'Failed to fetch recommendation data.');
+          setCases([]);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const renderDetailView = () => (
     <motion.div
@@ -330,13 +355,16 @@ export default function Reports() {
         </div>
       </div>
 
+      {loading && <p className="text-[#64748b] text-sm mb-4">Loading...</p>}
+      {!!error && <p className="text-sm text-red-600 mb-4">Error: {error}</p>}
+
       <motion.div
         variants={listVariants}
         initial="hidden"
         animate="visible"
         className="flex flex-col gap-4"
       >
-        {MOCK_CASES.map((c) => (
+        {cases.map((c) => (
           <motion.div
             key={c.id}
             variants={itemVariants}

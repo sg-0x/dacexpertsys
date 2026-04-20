@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
@@ -7,105 +8,39 @@ import IncidentDetailsCard from '../components/IncidentDetailsCard';
 import EvidenceCard from '../components/EvidenceCard';
 import TimelineCard from '../components/TimelineCard';
 import { pageVariants, listVariants, itemVariants } from '../lib/motion';
+import { getCases, getUsers } from '../services/api';
 
-// ─── Dummy data keyed by token ─────────────────────────────────────────────────
-const DUMMY_CASES = {
-  '2024-001': {
-    token: '#2024-001',
-    status: 'Pending Review',
-    statusDot: 'bg-yellow-500',
-    severity: 'Critical',
-    severityClass: 'bg-red-100 text-red-800',
+function toTitleCase(value = '') {
+  return String(value)
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
-    student: {
-      name: 'John Doe',
-      enrollment: '22CS034',
-      year: '2nd Year',
-      department: 'Computer Science',
-      email: 'john.doe@university.edu',
-      contact: '+91 98765 43210',
-      hostel: 'BSH',
-      room: 'B-214',
-      penaltyPoints: 25,
-    },
+function formatDate(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
-    previousOffences: [
-      { date: '12 Feb 2024', offenseType: 'Smoking',    severity: 'Medium', penaltyPoints: 25, status: 'Resolved' },
-      { date: '08 Sep 2023', offenseType: 'Attendance', severity: 'Low',    penaltyPoints: 10, status: 'Resolved' },
-    ],
+function formatTime(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+}
 
-    incident: {
-      token: '#2024-001',
-      date: '10 Mar 2024',
-      time: '11:45 PM',
-      location: 'Block B — Common Area',
-      offenseType: 'Plagiarism',
-      reportedBy: 'Warden, Block B',
-      description:
-        'Student was found to have submitted an assignment with significant portions copied from online sources without citation. Turnitin report shows 45% similarity, well above the permitted 15% threshold. Incident was first flagged by Dr. Patel (CS Dept.) during grading and subsequently referred to the Warden for formal reporting.',
-    },
-
-    evidence: [
-      { name: 'Turnitin_Report.pdf',   size: '1.2 MB', uploadedAt: '10 Mar 2024' },
-      { name: 'Assignment_Scan.pdf',   size: '3.8 MB', uploadedAt: '10 Mar 2024' },
-      { name: 'Photo_1.jpg',           size: '540 KB', uploadedAt: '11 Mar 2024' },
-    ],
-
-    timeline: [
-      { title: 'Case Reported',       date: '10 Mar 2024, 11:50 PM', badge: 'Reported',     state: 'completed', note: 'Reported by Warden, Block B.' },
-      { title: 'Investigation Started', date: '11 Mar 2024, 09:00 AM', badge: 'In Progress', state: 'completed', note: 'Assigned to DSW for primary investigation.' },
-      { title: 'DAC Review',          date: 'Scheduled: 18 Mar 2024', badge: 'Active',       state: 'active',    note: 'Awaiting committee hearing.' },
-      { title: 'Decision Issued',     date: null,                     badge: 'Pending',      state: 'upcoming',  note: null },
-      { title: 'Resolved',            date: null,                     badge: null,           state: 'upcoming',  note: null },
-    ],
-  },
-
-  '2024-002': {
-    token: '#2024-002',
-    status: 'Investigation',
-    statusDot: 'bg-blue-500',
-    severity: 'High',
-    severityClass: 'bg-orange-100 text-orange-800',
-
-    student: {
-      name: 'Jane Smith',
-      enrollment: '21AH019',
-      year: '3rd Year',
-      department: 'Arts & Humanities',
-      email: 'jane.smith@university.edu',
-      contact: '+91 91234 56789',
-      hostel: 'GH-1',
-      room: 'G-108',
-      penaltyPoints: 15,
-    },
-
-    previousOffences: [],
-
-    incident: {
-      token: '#2024-002',
-      date: '05 Mar 2024',
-      time: '03:20 PM',
-      location: 'Arts Block — Corridor',
-      offenseType: 'Vandalism',
-      reportedBy: 'Security Officer',
-      description:
-        'Student allegedly damaged a notice board and spray-painted graffiti on the wall of the Arts Block corridor. CCTV footage and witness accounts have been collected. Estimated property damage: ₹12,000.',
-    },
-
-    evidence: [
-      { name: 'CCTV_Footage_Clip.mp4', size: '22.4 MB', uploadedAt: '05 Mar 2024' },
-      { name: 'Damage_Photos.jpg',     size: '2.1 MB',  uploadedAt: '06 Mar 2024' },
-    ],
-
-    timeline: [
-      { title: 'Case Reported',      date: '05 Mar 2024, 04:00 PM', badge: 'Reported',     state: 'completed', note: 'Reported by campus security.' },
-      { title: 'Investigation Started', date: '06 Mar 2024, 10:00 AM', badge: 'In Progress', state: 'active',    note: 'Evidence being collected by DSW office.' },
-      { title: 'DAC Review',         date: null,                    badge: 'Pending',      state: 'upcoming',  note: null },
-      { title: 'Decision Issued',    date: null,                    badge: null,           state: 'upcoming',  note: null },
-      { title: 'Resolved',           date: null,                    badge: null,           state: 'upcoming',  note: null },
-    ],
-  },
-};
+function buildTimeline(status) {
+  const normalized = String(status || '').toLowerCase();
+  return [
+    { title: 'Case Reported', date: null, state: 'completed', note: 'Case has been registered in the system.' },
+    { title: 'Investigation Started', date: null, state: ['investigation', 'dac_review', 'resolved'].includes(normalized) ? 'completed' : 'upcoming', note: null },
+    { title: 'DAC Review', date: null, state: ['dac_review', 'resolved'].includes(normalized) ? 'completed' : 'upcoming', note: null },
+    { title: 'Decision Issued', date: null, state: normalized === 'resolved' ? 'completed' : 'upcoming', note: null },
+    { title: 'Resolved', date: null, state: normalized === 'resolved' ? 'completed' : 'upcoming', note: null },
+  ];
+}
 
 // ─── Fallback for unknown tokens ───────────────────────────────────────────────
 function NotFound({ token, onBack }) {
@@ -128,18 +63,114 @@ function NotFound({ token, onBack }) {
 // ─── Status & severity badge helpers ─────────────────────────────────────────
 const statusDotMap = {
   'Pending Review': 'bg-yellow-500',
+  Pending:          'bg-yellow-500',
   'Investigation':  'bg-blue-500',
   'DAC Review':     'bg-purple-500',
   'Resolved':       'bg-green-500',
   'Dismissed':      'bg-slate-400',
+  Warning:          'bg-amber-500',
+};
+
+const severityClassMap = {
+  Critical: 'bg-red-100 text-red-800',
+  High: 'bg-orange-100 text-orange-800',
+  Medium: 'bg-yellow-100 text-yellow-800',
+  Low: 'bg-slate-100 text-slate-700',
 };
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ManageCase() {
   const { token } = useParams();
   const navigate = useNavigate();
+  const hasLoggedResponseRef = useRef(false);
+  const [caseData, setCaseData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const caseData = DUMMY_CASES[token];
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError('');
+
+        const [casesResponse, usersResponse] = await Promise.all([getCases(), getUsers()]);
+
+        if (!hasLoggedResponseRef.current) {
+          console.log('ManageCase API response:', { cases: casesResponse, users: usersResponse });
+          hasLoggedResponseRef.current = true;
+        }
+
+        const matched = casesResponse.find((entry) => String(entry.id) === String(token));
+        if (!matched) {
+          if (mounted) setCaseData(null);
+          return;
+        }
+
+        const usersById = Object.fromEntries(usersResponse.map((user) => [String(user.id), user]));
+        const student = usersById[String(matched.student_id)] ?? {};
+        const reporter = usersById[String(matched.reported_by)] ?? null;
+
+        const previousOffences = casesResponse
+          .filter((entry) => entry.student_id === matched.student_id && entry.id !== matched.id)
+          .map((entry) => ({
+            date: formatDate(entry.incident_date ?? entry.created_at),
+            offenseType: toTitleCase(entry.offense_type) || 'N/A',
+            severity: toTitleCase(entry.severity) || 'Low',
+            penaltyPoints: entry.penalty_points ?? 0,
+            status: toTitleCase(entry.status) || 'Pending',
+          }));
+
+        const status = toTitleCase(matched.status) || 'Pending';
+        const severity = toTitleCase(matched.severity) || 'Low';
+
+        const mapped = {
+          token: `#${matched.id}`,
+          status,
+          severity,
+          severityClass: severityClassMap[severity] ?? 'bg-slate-100 text-slate-700',
+          student: {
+            name: student.name || 'Unknown Student',
+            enrollment: student.enrollment_no || `ID-${matched.student_id}`,
+            year: student.year ? `${student.year} Year` : 'N/A',
+            department: student.program ? toTitleCase(student.program) : 'N/A',
+            email: student.email || 'N/A',
+            contact: student.contact || 'N/A',
+            hostel: student.hostel || 'N/A',
+            room: student.room || 'N/A',
+            penaltyPoints: student.total_points ?? matched.penalty_points ?? 0,
+          },
+          previousOffences,
+          incident: {
+            token: `#${matched.id}`,
+            date: formatDate(matched.incident_date ?? matched.created_at),
+            time: formatTime(matched.created_at),
+            location: matched.location || 'N/A',
+            offenseType: toTitleCase(matched.offense_type) || 'N/A',
+            reportedBy: reporter?.name || (matched.reported_by ? `User #${matched.reported_by}` : 'System'),
+            description: matched.description || 'No description available.',
+          },
+          evidence: [],
+          timeline: buildTimeline(matched.status),
+        };
+
+        if (mounted) setCaseData(mapped);
+      } catch (loadError) {
+        if (mounted) {
+          setError(loadError?.message || 'Failed to fetch case details.');
+          setCaseData(null);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, [token]);
 
   return (
     <div className="min-h-screen bg-[#f9f9fb] font-sans antialiased">
@@ -192,7 +223,11 @@ export default function ManageCase() {
 
         {/* ── Page body ── */}
         <div className="p-4 md:p-8 max-w-[1400px] mx-auto w-full">
-          {!caseData ? (
+          {loading ? (
+            <p className="text-[#64748b] text-sm">Loading...</p>
+          ) : error ? (
+            <p className="text-sm text-red-600">Error: {error}</p>
+          ) : !caseData ? (
             <NotFound token={token} onBack={() => navigate('/dashboard')} />
           ) : (
             <motion.div

@@ -1,8 +1,29 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import EvidenceCard from '../../components/EvidenceCard';
 import TimelineCard from '../../components/TimelineCard';
-import { STUDENT_CASES } from './studentData';
+import { getCases, getUsers } from '../../services/api';
+
+function toTitleCase(value = '') {
+  return String(value)
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatDate(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function formatTime(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+}
 
 function NotFound({ token, onBack }) {
   return (
@@ -24,11 +45,93 @@ function NotFound({ token, onBack }) {
 export default function StudentCaseDetails() {
   const { token } = useParams();
   const navigate = useNavigate();
+  const hasLoggedResponseRef = useRef(false);
+  const [cases, setCases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError('');
+
+        const [casesResponse, usersResponse] = await Promise.all([getCases(), getUsers()]);
+
+        if (!hasLoggedResponseRef.current) {
+          console.log('StudentCaseDetails API response:', { cases: casesResponse, users: usersResponse });
+          hasLoggedResponseRef.current = true;
+        }
+
+        const usersById = Object.fromEntries(usersResponse.map((user) => [String(user.id), user]));
+        const mappedCases = casesResponse.map((entry) => {
+          const reporter = usersById[String(entry.reported_by)] ?? null;
+          const resolver = usersById[String(entry.resolved_by)] ?? null;
+          const status = toTitleCase(entry.status);
+          const severity = toTitleCase(entry.severity);
+          return {
+            token: String(entry.id),
+            offenseType: toTitleCase(entry.offense_type) || 'N/A',
+            severity,
+            severityClass: severity === 'Critical' ? 'bg-red-100 text-red-700' : severity === 'High' ? 'bg-orange-100 text-orange-700' : severity === 'Medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-600',
+            status,
+            statusDot: status === 'Resolved' ? 'bg-emerald-500' : status === 'Dac Review' ? 'bg-purple-500' : status === 'Investigation' ? 'bg-blue-500' : 'bg-yellow-500',
+            dateReported: formatDate(entry.incident_date ?? entry.created_at),
+            time: formatTime(entry.created_at),
+            location: entry.location || 'N/A',
+            reportedBy: reporter?.name || 'Warden',
+            description: entry.description || 'No description available.',
+            evidence: [],
+            timeline: [
+              { title: 'Case Reported', date: formatDate(entry.created_at), state: 'completed', note: null },
+              { title: 'Investigation Started', date: formatDate(entry.created_at), state: 'completed', note: null },
+              { title: 'Decision Issued', date: status === 'Resolved' ? formatDate(entry.created_at) : null, state: status === 'Resolved' ? 'completed' : 'upcoming', note: null },
+            ],
+            finalDecision: status === 'Resolved'
+              ? {
+                  resolvedBy: resolver?.name || 'Committee',
+                  role: resolver?.role ? toTitleCase(resolver.role) : 'Committee',
+                  date: formatDate(entry.created_at),
+                  fine: 'N/A',
+                  penaltyPoints: `${entry.penalty_points ?? 0} pts`,
+                  actionTaken: 'Resolved',
+                  remarks: entry.description || 'Case resolved.',
+                }
+              : null,
+          };
+        });
+
+        if (mounted) setCases(mappedCases);
+      } catch (loadError) {
+        if (mounted) {
+          setError(loadError?.message || 'Failed to fetch case details.');
+          setCases([]);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const caseData = useMemo(
-    () => STUDENT_CASES.find((item) => item.token === token),
-    [token],
+    () => cases.find((item) => item.token === token),
+    [cases, token],
   );
+
+  if (loading && !caseData) {
+    return <p className="text-[#64748b] text-sm">Loading...</p>;
+  }
+
+  if (!loading && error) {
+    return <p className="text-sm text-red-600">Error: {error}</p>;
+  }
 
   if (!caseData) {
     return <NotFound token={token} onBack={() => navigate('/student/cases')} />;
