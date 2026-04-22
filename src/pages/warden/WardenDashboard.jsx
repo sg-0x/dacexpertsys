@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import WardenSidebar from '../../components/WardenSidebar';
+import NotificationBell from '../../components/NotificationBell';
 import { pageVariants, listVariants, itemVariants } from '../../lib/motion';
 import { getCases, getUsers } from '../../services/api';
 
@@ -58,7 +59,10 @@ export default function WardenDashboard() {
         setLoading(true);
         setError('');
 
-        const [casesResponse, usersResponse] = await Promise.all([getCases(), getUsers()]);
+        const [casesResponse, usersResponse] = await Promise.all([
+          getCases({ role: 'warden' }),
+          getUsers(),
+        ]);
 
         if (!hasLoggedResponseRef.current) {
           console.log('WardenDashboard API response:', { cases: casesResponse, users: usersResponse });
@@ -90,8 +94,8 @@ export default function WardenDashboard() {
         });
 
         const total = mappedCases.length;
-        const active = casesResponse.filter((entry) => ['pending', 'pending_review', 'investigation'].includes(String(entry.status || '').toLowerCase())).length;
-        const escalated = casesResponse.filter((entry) => String(entry.status || '').toLowerCase() === 'dac_review').length;
+        const active = casesResponse.filter((entry) => ['pending_chief', 'pending_dsw', 'pending_admin'].includes(String(entry.status || '').toLowerCase())).length;
+        const escalated = casesResponse.filter((entry) => ['pending_dsw', 'pending_admin'].includes(String(entry.status || '').toLowerCase())).length;
         const resolved = casesResponse.filter((entry) => String(entry.status || '').toLowerCase() === 'resolved').length;
 
         const cards = [
@@ -158,6 +162,7 @@ export default function WardenDashboard() {
               <span className="material-symbols-outlined text-[16px]">add</span>
               Register Case
             </Link>
+            <NotificationBell />
           </div>
         </header>
 
@@ -182,7 +187,7 @@ export default function WardenDashboard() {
                 <p className="text-indigo-200 text-sm font-medium mb-1">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1">{getGreeting()}, Warden</h1>
                 <p className="text-indigo-200 text-sm leading-relaxed mb-5">
-                  You have <span className="text-white font-semibold">{statCards[1]?.value ?? '0'} active cases</span> and <span className="text-white font-semibold">{statCards[2]?.value ?? '0'} escalated cases</span> requiring attention.
+                  You have <span className="text-white font-semibold">{statCards[1]?.value ?? '0'} active workflow cases</span> and <span className="text-white font-semibold">{statCards[2]?.value ?? '0'} escalated cases</span> in review pipeline.
                 </p>
                 <Link
                   to="/warden/register"

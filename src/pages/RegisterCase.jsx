@@ -9,7 +9,7 @@ const offenseOptions = [
   'Disruption', 'Substance Abuse', 'Harassment', 'Other',
 ];
 
-const STEPS = ['Student Info', 'Incident Details', 'Evidence', 'Assessment', 'Review', 'Submit'];
+const STEPS = ['Student Info', 'Incident Details', 'Evidence', 'Review', 'Submit'];
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
 function ProgressBar({ steps, currentStep }) {
@@ -95,7 +95,7 @@ function toYearLabel(value) {
 
 // ─── Step Sections ────────────────────────────────────────────────────────────
 
-function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, lookupLoading, lookupError }) {
+function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, onEnrollmentKeyDown, lookupLoading, lookupStatusType, lookupStatusMessage, errors, getInputClass }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
@@ -103,24 +103,26 @@ function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, look
         <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Student Information</h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-        <Field label="Enrollment Number">
+        <Field label="Enrollment Number *">
           <input
             type="text"
             value={form.rollNumber}
             onChange={onEnrollmentChange}
             onBlur={onEnrollmentBlur}
-            placeholder="e.g. CS-2023-045"
-            className={inputCls}
+            onKeyDown={onEnrollmentKeyDown}
+            data-field="rollNumber"
+            placeholder=""
+            className={getInputClass('rollNumber')}
           />
           {lookupLoading ? <p className="text-xs text-[#64748b]">Looking up student details...</p> : null}
-          {lookupError ? <p className="text-xs text-red-600">{lookupError}</p> : null}
+          {errors.rollNumber ? <p className="text-xs text-red-600">{errors.rollNumber}</p> : null}
         </Field>
         <Field label="Student Name">
           <input
             type="text"
             value={form.studentName}
             onChange={set('studentName')}
-            placeholder="e.g. John Doe"
+            placeholder=""
             className={inputCls}
           />
         </Field>
@@ -129,7 +131,7 @@ function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, look
             type="text"
             value={form.department}
             onChange={set('department')}
-            placeholder="e.g. Computer Science"
+            placeholder=""
             className={inputCls}
           />
         </Field>
@@ -138,7 +140,7 @@ function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, look
             type="text"
             value={form.year}
             onChange={set('year')}
-            placeholder="e.g. 2nd Year"
+            placeholder=""
             className={inputCls}
           />
         </Field>
@@ -147,7 +149,7 @@ function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, look
             type="text"
             value={form.hostel}
             onChange={set('hostel')}
-            placeholder="e.g. BSH"
+            placeholder=""
             className={inputCls}
           />
         </Field>
@@ -156,28 +158,40 @@ function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, look
             type="text"
             value={form.roomNo}
             onChange={set('roomNo')}
-            placeholder="e.g. B-214"
+            placeholder=""
             className={inputCls}
           />
         </Field>
+        {lookupStatusMessage ? (
+          <div
+            className={`sm:col-span-2 rounded-md px-3 py-2 text-xs font-medium ${
+              lookupStatusType === 'success'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-red-50 text-red-700 border border-red-200'
+            }`}
+          >
+            {lookupStatusMessage}
+          </div>
+        ) : null}
       </div>
     </div>
   );
 }
 
-function StepIncidentDetails({ form, set }) {
+function StepIncidentDetails({ form, set, onOffenseTypeChange, errors, getInputClass }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
         <span className="material-symbols-outlined text-[#4f46e5] text-[22px]">report</span>
         <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Incident Details</h2>
       </div>
-      <Field label="Offense Type">
+      <Field label="Offense Type *">
         <div className="relative">
           <select
             value={form.offenseType}
-            onChange={set('offenseType')}
-            className={`w-full appearance-none ${inputCls} py-3 cursor-pointer`}
+            onChange={onOffenseTypeChange}
+            data-field="offenseType"
+            className={`w-full appearance-none ${getInputClass('offenseType')} py-3 cursor-pointer`}
           >
             <option value="" disabled>Select offense category...</option>
             {offenseOptions.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -186,7 +200,203 @@ function StepIncidentDetails({ form, set }) {
             expand_more
           </span>
         </div>
+        {errors.offenseType ? <p className="text-xs text-red-600">{errors.offenseType}</p> : null}
       </Field>
+
+      <Field label="Time of Incident *">
+        <input
+          type="time"
+          value={form.incidentTime}
+          onChange={set('incidentTime')}
+          data-field="incidentTime"
+          className={getInputClass('incidentTime')}
+        />
+        {errors.incidentTime ? <p className="text-xs text-red-600">{errors.incidentTime}</p> : null}
+      </Field>
+
+      <AnimatePresence mode="popLayout" initial={false}>
+        {form.offenseType === 'Substance Abuse' && (
+          <motion.div
+            key="substance-abuse-fields"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5"
+          >
+            <Field label="Substance Type *">
+              <select
+                value={form.substanceType}
+                onChange={set('substanceType')}
+                data-field="substanceType"
+                className={`w-full appearance-none ${getInputClass('substanceType')} py-3 cursor-pointer`}
+              >
+                <option value="">Select substance type...</option>
+                {['Alcohol', 'Cigarette', 'Weed', 'Drugs (Other)', 'Other'].map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+              <p className="text-xs text-[#64748b]">Select the observed substance category.</p>
+              {errors.substanceType ? <p className="text-xs text-red-600">{errors.substanceType}</p> : null}
+            </Field>
+
+            {form.substanceType === 'Other' && (
+              <Field label="Custom Substance *">
+                <input
+                  type="text"
+                  value={form.customSubstance}
+                  onChange={set('customSubstance')}
+                  data-field="customSubstance"
+                  placeholder="Enter substance name"
+                  className={getInputClass('customSubstance')}
+                />
+                {errors.customSubstance ? <p className="text-xs text-red-600">{errors.customSubstance}</p> : null}
+              </Field>
+            )}
+
+            {form.substanceType === 'Alcohol' && (
+              <>
+                <Field label="Alcohol Reading *">
+                  <input
+                    type="text"
+                    value={form.alcoholReading}
+                    onChange={set('alcoholReading')}
+                    data-field="alcoholReading"
+                    placeholder="Enter breathalyzer reading"
+                    className={getInputClass('alcoholReading')}
+                  />
+                  {errors.alcoholReading ? <p className="text-xs text-red-600">{errors.alcoholReading}</p> : null}
+                </Field>
+
+                <Field label="Location Found *">
+                  <select
+                    value={form.locationFound}
+                    onChange={set('locationFound')}
+                    data-field="locationFound"
+                    className={`w-full appearance-none ${getInputClass('locationFound')} py-3 cursor-pointer`}
+                  >
+                    <option value="">Select location...</option>
+                    {['Main Gate', 'Hostel Room', 'Hostel Corridor', 'Campus Ground', 'Other'].map((location) => (
+                      <option key={location} value={location}>{location}</option>
+                    ))}
+                  </select>
+                  {errors.locationFound ? <p className="text-xs text-red-600">{errors.locationFound}</p> : null}
+                </Field>
+
+                {form.locationFound === 'Other' && (
+                  <Field label="Custom Location *">
+                    <input
+                      type="text"
+                      value={form.customLocation}
+                      onChange={set('customLocation')}
+                      data-field="customLocation"
+                      placeholder="Enter exact location"
+                      className={getInputClass('customLocation')}
+                    />
+                    {errors.customLocation ? <p className="text-xs text-red-600">{errors.customLocation}</p> : null}
+                  </Field>
+                )}
+              </>
+            )}
+          </motion.div>
+        )}
+
+        {form.offenseType === 'Harassment' && (
+          <motion.div
+            key="harassment-fields"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5"
+          >
+            <Field label="Victim Name *">
+              <input
+                type="text"
+                value={form.victimName}
+                onChange={set('victimName')}
+                data-field="victimName"
+                placeholder="Enter victim name"
+                className={getInputClass('victimName')}
+              />
+              {errors.victimName ? <p className="text-xs text-red-600">{errors.victimName}</p> : null}
+            </Field>
+            <Field label="Type of Harassment *">
+              <select
+                value={form.harassmentType}
+                onChange={set('harassmentType')}
+                data-field="harassmentType"
+                className={`w-full appearance-none ${getInputClass('harassmentType')} py-3 cursor-pointer`}
+              >
+                <option value="">Select harassment type...</option>
+                {['verbal', 'physical', 'online', 'other'].map((type) => (
+                  <option key={type} value={type}>{toTitleCase(type)}</option>
+                ))}
+              </select>
+              {errors.harassmentType ? <p className="text-xs text-red-600">{errors.harassmentType}</p> : null}
+            </Field>
+          </motion.div>
+        )}
+
+        {form.offenseType === 'Vandalism' && (
+          <motion.div
+            key="vandalism-fields"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5"
+          >
+            <Field label="Property Damaged *">
+              <input
+                type="text"
+                value={form.propertyDamaged}
+                onChange={set('propertyDamaged')}
+                data-field="propertyDamaged"
+                placeholder="Describe damaged property"
+                className={getInputClass('propertyDamaged')}
+              />
+              {errors.propertyDamaged ? <p className="text-xs text-red-600">{errors.propertyDamaged}</p> : null}
+            </Field>
+            <Field label="Estimated Damage Cost *">
+              <input
+                type="number"
+                value={form.damageCost}
+                onChange={set('damageCost')}
+                data-field="damageCost"
+                min="0"
+                placeholder="Enter estimated amount"
+                className={getInputClass('damageCost')}
+              />
+              {errors.damageCost ? <p className="text-xs text-red-600">{errors.damageCost}</p> : null}
+            </Field>
+          </motion.div>
+        )}
+
+        {form.offenseType === 'Other' && (
+          <motion.div
+            key="other-offense-fields"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="grid grid-cols-1 gap-y-5"
+          >
+            <Field label="Custom Offense Description *">
+              <input
+                type="text"
+                value={form.customOffense}
+                onChange={set('customOffense')}
+                data-field="customOffense"
+                placeholder="Enter custom offense"
+                className={getInputClass('customOffense')}
+              />
+              {errors.customOffense ? <p className="text-xs text-red-600">{errors.customOffense}</p> : null}
+            </Field>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Field label="Incident Description">
         <textarea
           value={form.description}
@@ -229,89 +439,7 @@ function StepEvidence({ dragOver, setDragOver }) {
   );
 }
 
-function StepAssessment({ intoxicated, setIntoxicated, cooperated, setCooperated, offenseCount, setOffenseCount, form, set }) {
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="material-symbols-outlined text-[#4f46e5] text-[20px]">psychology</span>
-        <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Incident Assessment</h2>
-      </div>
-      <p className="text-[#64748b] text-sm leading-5">
-        Answer the following to determine the recommended disciplinary action framework.
-      </p>
-
-      {/* Q1 */}
-      <div className="flex flex-col gap-1">
-        <p className="text-[#0f172a] font-semibold text-base leading-6">Was the student intoxicated?</p>
-        <p className="text-[#64748b] text-sm leading-5">Evidence of alcohol consumption, breathalyzer, or field sobriety test.</p>
-        <div className="flex gap-4 pt-3">
-          {[{ value: true, label: 'Yes, evidence present' }, { value: false, label: 'No, sober' }].map(({ value, label }) => (
-            <label key={String(value)} className="flex-1 cursor-pointer">
-              <input type="radio" className="sr-only" checked={intoxicated === value} onChange={() => setIntoxicated(value)} />
-              <div className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${intoxicated === value ? 'bg-[#f0f4ff] border-[#4f46e5]' : 'bg-white border-[#e2e4ea]'}`}>
-                <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${intoxicated === value ? 'border-[#4f46e5] bg-[#4f46e5]' : 'border-[#cbd5e1]'}`}>
-                  {intoxicated === value && <div className="w-2 h-2 rounded-full bg-white" />}
-                </div>
-                <span className="text-[#334155] text-base font-medium">{label}</span>
-              </div>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* Q2 */}
-      <div className="flex flex-col gap-1">
-        <p className="text-[#0f172a] font-semibold text-base leading-6">Did the student cooperate with officials?</p>
-        <p className="text-[#64748b] text-sm leading-5 pb-3">Compliance with campus security or faculty requests during the incident.</p>
-        <div className="inline-flex p-1 bg-[#f6f6f8] rounded-lg gap-1">
-          {['Yes', 'No'].map((opt) => {
-            const val = opt === 'Yes';
-            return (
-              <button key={opt} type="button" onClick={() => setCooperated(val)}
-                className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${cooperated === val ? 'bg-white text-[#4f46e5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]' : 'text-[#475569] hover:text-[#0f172a]'}`}>
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Q3 */}
-      <div className="flex flex-col gap-1">
-        <p className="text-[#0f172a] font-semibold text-base leading-6">Offense Count</p>
-        <p className="text-[#64748b] text-sm leading-5">How many prior related offenses has the student committed?</p>
-        <div className="flex gap-4 pt-3">
-          {[{ count: 1, label: '1st' }, { count: 2, label: '2nd' }, { count: 3, label: '3rd+' }].map(({ count, label }) => (
-            <button key={count} type="button" onClick={() => setOffenseCount(count)}
-              className={`relative flex-1 flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${offenseCount === count ? 'bg-[#4f46e5]/5 border-[#4f46e5]' : 'border-[#e2e4ea] hover:bg-slate-50'}`}>
-              <span className="text-[#0f172a] font-bold text-2xl leading-8">{label}</span>
-              <span className="text-[#64748b] text-xs">Offense</span>
-              {offenseCount === count && (
-                <span className="material-symbols-outlined absolute top-3 right-3 text-[#4f46e5] text-[15px]">check_circle</span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Additional Notes */}
-      <div className="flex flex-col gap-2">
-        <label className="text-[#0f172a] font-semibold text-base leading-6">
-          Additional Notes <span className="font-normal text-[#94a3b8]">(Optional)</span>
-        </label>
-        <textarea
-          value={form.notes}
-          onChange={set('notes')}
-          rows={3}
-          placeholder="Enter any mitigating circumstances..."
-          className="bg-white border border-[#e2e4ea] rounded-lg px-3 py-3 text-[#0f172a] text-base placeholder:text-[#94a3b8] resize-y focus:outline-none focus:border-[#4f46e5] focus:ring-1 focus:ring-[#4f46e5] transition-colors"
-        />
-      </div>
-    </div>
-  );
-}
-
-function StepReview({ form, intoxicated, cooperated, offenseCount }) {
+function StepReview({ form }) {
   const rows = [
     { label: 'Student Name', value: form.studentName || '—' },
     { label: 'Enrollment Number', value: form.rollNumber || '—' },
@@ -320,10 +448,38 @@ function StepReview({ form, intoxicated, cooperated, offenseCount }) {
     { label: 'Hostel', value: form.hostel || '—' },
     { label: 'Room Number', value: form.roomNo || '—' },
     { label: 'Offense Type', value: form.offenseType || '—' },
-    { label: 'Intoxicated', value: intoxicated === null ? '—' : intoxicated ? 'Yes' : 'No' },
-    { label: 'Cooperated', value: cooperated ? 'Yes' : 'No' },
-    { label: 'Offense Count', value: `${offenseCount}${offenseCount === 3 ? '+' : ''}` },
+    { label: 'Time of Incident', value: form.incidentTime || '—' },
   ];
+
+  if (form.offenseType === 'Substance Abuse') {
+    rows.push({
+      label: 'Substance Type',
+      value: form.substanceType === 'Other' ? (form.customSubstance || 'Other') : (form.substanceType || '—'),
+    });
+
+    if (form.substanceType === 'Alcohol') {
+      rows.push({ label: 'Alcohol Reading', value: form.alcoholReading || '—' });
+      rows.push({
+        label: 'Location Found',
+        value: form.locationFound === 'Other' ? (form.customLocation || 'Other') : (form.locationFound || '—'),
+      });
+    }
+  }
+
+  if (form.offenseType === 'Harassment') {
+    rows.push({ label: 'Victim Name', value: form.victimName || '—' });
+    rows.push({ label: 'Harassment Type', value: form.harassmentType ? toTitleCase(form.harassmentType) : '—' });
+  }
+
+  if (form.offenseType === 'Vandalism') {
+    rows.push({ label: 'Property Damaged', value: form.propertyDamaged || '—' });
+    rows.push({ label: 'Estimated Damage Cost', value: form.damageCost ? `Rs. ${form.damageCost}` : '—' });
+  }
+
+  if (form.offenseType === 'Other') {
+    rows.push({ label: 'Custom Offense', value: form.customOffense || '—' });
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
@@ -435,20 +591,55 @@ export default function RegisterCase() {
 
   const [form, setForm] = useState({
     studentName: '', rollNumber: '', department: '', year: '', hostel: '', roomNo: '',
-    offenseType: '', description: '', notes: '',
+    offenseType: '',
+    incidentTime: '',
+    substanceType: '',
+    customSubstance: '',
+    alcoholReading: '',
+    locationFound: '',
+    customLocation: '',
+    victimName: '',
+    harassmentType: '',
+    propertyDamaged: '',
+    damageCost: '',
+    customOffense: '',
+    description: '',
   });
+  const [errors, setErrors] = useState({});
   const [lookupLoading, setLookupLoading] = useState(false);
-  const [lookupError, setLookupError] = useState('');
-  const [intoxicated, setIntoxicated] = useState(null);
-  const [cooperated, setCooperated] = useState(true);
-  const [offenseCount, setOffenseCount] = useState(1);
+  const [lookupStatusType, setLookupStatusType] = useState('');
+  const [lookupStatusMessage, setLookupStatusMessage] = useState('');
   const [dragOver, setDragOver] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [caseResult, setCaseResult] = useState(null);
 
-  const set = (field) => (e) => setForm((p) => ({ ...p, [field]: e.target.value }));
+  const set = (field) => (e) => {
+    const value = e.target.value;
+    setForm((p) => ({ ...p, [field]: value }));
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      return { ...prev, [field]: '' };
+    });
+  };
+
+  const getInputClass = (field) => (
+    `${inputCls} ${errors[field] ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`
+  );
+
+  const resetIncidentDependentFields = () => ({
+    substanceType: '',
+    customSubstance: '',
+    alcoholReading: '',
+    locationFound: '',
+    customLocation: '',
+    victimName: '',
+    harassmentType: '',
+    propertyDamaged: '',
+    damageCost: '',
+    customOffense: '',
+  });
 
   const lookupStudentByEnrollment = async (enrollmentInput) => {
     const enrollment = String(enrollmentInput || '').trim().toLowerCase();
@@ -456,14 +647,16 @@ export default function RegisterCase() {
 
     try {
       setLookupLoading(true);
-      setLookupError('');
+      setLookupStatusType('');
+      setLookupStatusMessage('');
 
       const users = usersCacheRef.current ?? await getUsers();
       if (!usersCacheRef.current) usersCacheRef.current = users;
 
       const user = users.find((entry) => String(entry.enrollment_no || '').trim().toLowerCase() === enrollment);
       if (!user) {
-        setLookupError('No student found for this enrollment number.');
+        setLookupStatusType('error');
+        setLookupStatusMessage('No student found.');
         return;
       }
 
@@ -475,20 +668,136 @@ export default function RegisterCase() {
         hostel: user.hostel || prev.hostel,
         roomNo: user.room || prev.roomNo,
       }));
+      setLookupStatusType('success');
+      setLookupStatusMessage('Student record found.');
     } catch (err) {
-      setLookupError(err?.message || 'Failed to fetch student details.');
+      setLookupStatusType('error');
+      setLookupStatusMessage(err?.message || 'No student found.');
     } finally {
       setLookupLoading(false);
     }
   };
 
   const handleEnrollmentChange = (e) => {
-    setLookupError('');
+    setLookupStatusType('');
+    setLookupStatusMessage('');
     setForm((p) => ({ ...p, rollNumber: e.target.value }));
+    setErrors((prev) => {
+      if (!prev.rollNumber) return prev;
+      return { ...prev, rollNumber: '' };
+    });
+  };
+
+  const handleEnrollmentKeyDown = (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    lookupStudentByEnrollment(e.currentTarget.value);
   };
 
   const handleEnrollmentBlur = () => {
     lookupStudentByEnrollment(form.rollNumber);
+  };
+
+  const handleOffenseTypeChange = (e) => {
+    const selectedOffense = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      offenseType: selectedOffense,
+      ...resetIncidentDependentFields(),
+    }));
+    setErrors((prev) => ({
+      ...prev,
+      offenseType: '',
+      substanceType: '',
+      customSubstance: '',
+      alcoholReading: '',
+      locationFound: '',
+      customLocation: '',
+      victimName: '',
+      harassmentType: '',
+      propertyDamaged: '',
+      damageCost: '',
+      customOffense: '',
+    }));
+  };
+
+  const scrollToFirstError = (nextErrors) => {
+    const firstField = Object.keys(nextErrors).find((key) => nextErrors[key]);
+    if (!firstField) return;
+    const node = document.querySelector(`[data-field="${firstField}"]`);
+    if (node) {
+      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (typeof node.focus === 'function') node.focus();
+    }
+  };
+
+  const validateStep = (step) => {
+    const nextErrors = {};
+
+    if (step === 0) {
+      if (!String(form.rollNumber || '').trim()) {
+        nextErrors.rollNumber = 'This field is required';
+      }
+    }
+
+    if (step === 1) {
+      if (!String(form.offenseType || '').trim()) {
+        nextErrors.offenseType = 'This field is required';
+      }
+      if (!String(form.incidentTime || '').trim()) {
+        nextErrors.incidentTime = 'This field is required';
+      }
+      if (form.offenseType === 'Substance Abuse') {
+        if (!String(form.substanceType || '').trim()) {
+          nextErrors.substanceType = 'This field is required';
+        }
+        if (form.substanceType === 'Other' && !String(form.customSubstance || '').trim()) {
+          nextErrors.customSubstance = 'This field is required';
+        }
+        if (form.substanceType === 'Alcohol') {
+          if (!String(form.alcoholReading || '').trim()) {
+            nextErrors.alcoholReading = 'This field is required';
+          }
+          if (!String(form.locationFound || '').trim()) {
+            nextErrors.locationFound = 'This field is required';
+          }
+          if (form.locationFound === 'Other' && !String(form.customLocation || '').trim()) {
+            nextErrors.customLocation = 'This field is required';
+          }
+        }
+      }
+
+      if (form.offenseType === 'Harassment') {
+        if (!String(form.victimName || '').trim()) {
+          nextErrors.victimName = 'This field is required';
+        }
+        if (!String(form.harassmentType || '').trim()) {
+          nextErrors.harassmentType = 'This field is required';
+        }
+      }
+
+      if (form.offenseType === 'Vandalism') {
+        if (!String(form.propertyDamaged || '').trim()) {
+          nextErrors.propertyDamaged = 'This field is required';
+        }
+        if (!String(form.damageCost || '').trim()) {
+          nextErrors.damageCost = 'This field is required';
+        }
+      }
+
+      if (form.offenseType === 'Other') {
+        if (!String(form.customOffense || '').trim()) {
+          nextErrors.customOffense = 'This field is required';
+        }
+      }
+    }
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) {
+      scrollToFirstError(nextErrors);
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async () => {
@@ -506,7 +815,10 @@ export default function RegisterCase() {
     }
   };
 
-  const goNext = () => setCurrentStep((s) => Math.min(STEPS.length - 1, s + 1));
+  const goNext = () => {
+    if (!validateStep(currentStep)) return;
+    setCurrentStep((s) => Math.min(STEPS.length - 1, s + 1));
+  };
   const goPrev = () => setCurrentStep((s) => Math.max(0, s - 1));
   const isLast = currentStep === STEPS.length - 1;
   const isFirst = currentStep === 0;
@@ -517,18 +829,22 @@ export default function RegisterCase() {
       set={set}
       onEnrollmentChange={handleEnrollmentChange}
       onEnrollmentBlur={handleEnrollmentBlur}
+      onEnrollmentKeyDown={handleEnrollmentKeyDown}
       lookupLoading={lookupLoading}
-      lookupError={lookupError}
+      lookupStatusType={lookupStatusType}
+      lookupStatusMessage={lookupStatusMessage}
+      errors={errors}
+      getInputClass={getInputClass}
     />,
-    <StepIncidentDetails form={form} set={set} />,
+    <StepIncidentDetails
+      form={form}
+      set={set}
+      onOffenseTypeChange={handleOffenseTypeChange}
+      errors={errors}
+      getInputClass={getInputClass}
+    />,
     <StepEvidence dragOver={dragOver} setDragOver={setDragOver} />,
-    <StepAssessment
-      intoxicated={intoxicated} setIntoxicated={setIntoxicated}
-      cooperated={cooperated} setCooperated={setCooperated}
-      offenseCount={offenseCount} setOffenseCount={setOffenseCount}
-      form={form} set={set}
-    />,
-    <StepReview form={form} intoxicated={intoxicated} cooperated={cooperated} offenseCount={offenseCount} />,
+    <StepReview form={form} />,
     <StepSubmit
       caseResult={caseResult} loading={loading} error={error}
       onSubmit={handleSubmit}
@@ -613,7 +929,7 @@ export default function RegisterCase() {
                 <div className="flex flex-col gap-3">
                   {[
                     "Ensure the Roll Number is exact to auto-fetch academic history.",
-                    "Enter enrollment number and tab out to auto-fill student details.",
+                    "Press Enter after enrollment number to auto-fill student details.",
                     "Select the most severe offense if multiple violations occurred.",
                     "Attach clear evidence or signed witness statements.",
                   ].map((tip, i) => (

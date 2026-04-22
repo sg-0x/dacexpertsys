@@ -2,14 +2,14 @@ import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import WardenSidebar from '../../components/WardenSidebar';
-import { getUsers } from '../../services/api';
+import { createCase, getUsers } from '../../services/api';
 
 const offenseOptions = [
-  'Noise Complaint', 'Late Night Entry', 'Room Damage', 'Unauthorized Guest',
-  'Smoking in Hostel', 'Alcohol Possession', 'Harassment', 'Other',
+  'Plagiarism', 'Vandalism', 'Exam Malpractice', 'Attendance',
+  'Disruption', 'Substance Abuse', 'Harassment', 'Other',
 ];
 
-const STEPS = ['Student Info', 'Incident Details', 'Evidence', 'Questionnaire', 'Review'];
+const STEPS = ['Student Info', 'Incident Details', 'Evidence', 'Review', 'Submit'];
 
 function ProgressBar({ steps, currentStep }) {
   const percentage = steps.length <= 1 ? 100 : Math.round((currentStep / (steps.length - 1)) * 100);
@@ -91,7 +91,7 @@ function toYearLabel(value) {
   return `${n}${suffix} Year`;
 }
 
-function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, lookupLoading, lookupError }) {
+function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, onEnrollmentKeyDown, lookupLoading, lookupStatusType, lookupStatusMessage, errors, getInputClass }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
@@ -99,24 +99,26 @@ function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, look
         <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Student Information</h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-        <Field label="Enrollment Number">
+        <Field label="Enrollment Number *">
           <input
             type="text"
-            value={form.enrollmentNumber}
+            value={form.rollNumber}
             onChange={onEnrollmentChange}
             onBlur={onEnrollmentBlur}
-            placeholder="e.g. 22ME045"
-            className={inputCls}
+            onKeyDown={onEnrollmentKeyDown}
+            data-field="rollNumber"
+            placeholder=""
+            className={getInputClass('rollNumber')}
           />
           {lookupLoading ? <p className="text-xs text-[#64748b]">Looking up student details...</p> : null}
-          {lookupError ? <p className="text-xs text-red-600">{lookupError}</p> : null}
+          {errors.rollNumber ? <p className="text-xs text-red-600">{errors.rollNumber}</p> : null}
         </Field>
         <Field label="Student Name">
           <input
             type="text"
             value={form.studentName}
             onChange={set('studentName')}
-            placeholder="e.g. Rahul Kumar"
+            placeholder=""
             className={inputCls}
           />
         </Field>
@@ -125,86 +127,67 @@ function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, look
             type="text"
             value={form.department}
             onChange={set('department')}
-            placeholder="e.g. Mechanical Engineering"
+            placeholder=""
             className={inputCls}
           />
         </Field>
         <Field label="Year">
-          <select
+          <input
+            type="text"
             value={form.year}
             onChange={set('year')}
-            className={`${inputCls} appearance-none cursor-pointer`}
-          >
-            <option value="">Select year...</option>
-            <option value="1st Year">1st Year</option>
-            <option value="2nd Year">2nd Year</option>
-            <option value="3rd Year">3rd Year</option>
-            <option value="4th Year">4th Year</option>
-          </select>
+            placeholder=""
+            className={inputCls}
+          />
         </Field>
         <Field label="Hostel">
           <input
             type="text"
             value={form.hostel}
             onChange={set('hostel')}
-            placeholder="BSH"
+            placeholder=""
             className={inputCls}
           />
         </Field>
         <Field label="Room Number">
           <input
             type="text"
-            value={form.room}
-            onChange={set('room')}
-            placeholder="e.g. B-214"
+            value={form.roomNo}
+            onChange={set('roomNo')}
+            placeholder=""
             className={inputCls}
           />
         </Field>
+        {lookupStatusMessage ? (
+          <div
+            className={`sm:col-span-2 rounded-md px-3 py-2 text-xs font-medium ${
+              lookupStatusType === 'success'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-red-50 text-red-700 border border-red-200'
+            }`}
+          >
+            {lookupStatusMessage}
+          </div>
+        ) : null}
       </div>
     </div>
   );
 }
 
-function StepIncidentDetails({ form, set }) {
+function StepIncidentDetails({ form, set, onOffenseTypeChange, errors, getInputClass }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
         <span className="material-symbols-outlined text-[#4f46e5] text-[22px]">report</span>
         <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Incident Details</h2>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-        <Field label="Date">
-          <input
-            type="date"
-            value={form.date}
-            onChange={set('date')}
-            className={inputCls}
-          />
-        </Field>
-        <Field label="Time">
-          <input
-            type="time"
-            value={form.time}
-            onChange={set('time')}
-            className={inputCls}
-          />
-        </Field>
-      </div>
-      <Field label="Location">
-        <input
-          type="text"
-          value={form.location}
-          onChange={set('location')}
-          placeholder="e.g. Block B - Common Area"
-          className={inputCls}
-        />
-      </Field>
-      <Field label="Offense Type">
+      <Field label="Offense Type *">
         <div className="relative">
           <select
             value={form.offenseType}
-            onChange={set('offenseType')}
-            className={`w-full appearance-none ${inputCls} py-3 cursor-pointer`}
+            onChange={onOffenseTypeChange}
+            data-field="offenseType"
+            className={`w-full appearance-none ${getInputClass('offenseType')} py-3 cursor-pointer`}
           >
             <option value="" disabled>Select offense category...</option>
             {offenseOptions.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -213,13 +196,209 @@ function StepIncidentDetails({ form, set }) {
             expand_more
           </span>
         </div>
+        {errors.offenseType ? <p className="text-xs text-red-600">{errors.offenseType}</p> : null}
       </Field>
-      <Field label="Description">
+
+      <Field label="Time of Incident *">
+        <input
+          type="time"
+          value={form.incidentTime}
+          onChange={set('incidentTime')}
+          data-field="incidentTime"
+          className={getInputClass('incidentTime')}
+        />
+        {errors.incidentTime ? <p className="text-xs text-red-600">{errors.incidentTime}</p> : null}
+      </Field>
+
+      <AnimatePresence mode="popLayout" initial={false}>
+        {form.offenseType === 'Substance Abuse' && (
+          <motion.div
+            key="substance-abuse-fields"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5"
+          >
+            <Field label="Substance Type *">
+              <select
+                value={form.substanceType}
+                onChange={set('substanceType')}
+                data-field="substanceType"
+                className={`w-full appearance-none ${getInputClass('substanceType')} py-3 cursor-pointer`}
+              >
+                <option value="">Select substance type...</option>
+                {['Alcohol', 'Cigarette', 'Weed', 'Drugs (Other)', 'Other'].map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+              <p className="text-xs text-[#64748b]">Select the observed substance category.</p>
+              {errors.substanceType ? <p className="text-xs text-red-600">{errors.substanceType}</p> : null}
+            </Field>
+
+            {form.substanceType === 'Other' && (
+              <Field label="Custom Substance *">
+                <input
+                  type="text"
+                  value={form.customSubstance}
+                  onChange={set('customSubstance')}
+                  data-field="customSubstance"
+                  placeholder="Enter substance name"
+                  className={getInputClass('customSubstance')}
+                />
+                {errors.customSubstance ? <p className="text-xs text-red-600">{errors.customSubstance}</p> : null}
+              </Field>
+            )}
+
+            {form.substanceType === 'Alcohol' && (
+              <>
+                <Field label="Alcohol Reading *">
+                  <input
+                    type="text"
+                    value={form.alcoholReading}
+                    onChange={set('alcoholReading')}
+                    data-field="alcoholReading"
+                    placeholder="Enter breathalyzer reading"
+                    className={getInputClass('alcoholReading')}
+                  />
+                  {errors.alcoholReading ? <p className="text-xs text-red-600">{errors.alcoholReading}</p> : null}
+                </Field>
+
+                <Field label="Location Found *">
+                  <select
+                    value={form.locationFound}
+                    onChange={set('locationFound')}
+                    data-field="locationFound"
+                    className={`w-full appearance-none ${getInputClass('locationFound')} py-3 cursor-pointer`}
+                  >
+                    <option value="">Select location...</option>
+                    {['Main Gate', 'Hostel Room', 'Hostel Corridor', 'Campus Ground', 'Other'].map((location) => (
+                      <option key={location} value={location}>{location}</option>
+                    ))}
+                  </select>
+                  {errors.locationFound ? <p className="text-xs text-red-600">{errors.locationFound}</p> : null}
+                </Field>
+
+                {form.locationFound === 'Other' && (
+                  <Field label="Custom Location *">
+                    <input
+                      type="text"
+                      value={form.customLocation}
+                      onChange={set('customLocation')}
+                      data-field="customLocation"
+                      placeholder="Enter exact location"
+                      className={getInputClass('customLocation')}
+                    />
+                    {errors.customLocation ? <p className="text-xs text-red-600">{errors.customLocation}</p> : null}
+                  </Field>
+                )}
+              </>
+            )}
+          </motion.div>
+        )}
+
+        {form.offenseType === 'Harassment' && (
+          <motion.div
+            key="harassment-fields"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5"
+          >
+            <Field label="Victim Name *">
+              <input
+                type="text"
+                value={form.victimName}
+                onChange={set('victimName')}
+                data-field="victimName"
+                placeholder="Enter victim name"
+                className={getInputClass('victimName')}
+              />
+              {errors.victimName ? <p className="text-xs text-red-600">{errors.victimName}</p> : null}
+            </Field>
+            <Field label="Type of Harassment *">
+              <select
+                value={form.harassmentType}
+                onChange={set('harassmentType')}
+                data-field="harassmentType"
+                className={`w-full appearance-none ${getInputClass('harassmentType')} py-3 cursor-pointer`}
+              >
+                <option value="">Select harassment type...</option>
+                {['verbal', 'physical', 'online', 'other'].map((type) => (
+                  <option key={type} value={type}>{toTitleCase(type)}</option>
+                ))}
+              </select>
+              {errors.harassmentType ? <p className="text-xs text-red-600">{errors.harassmentType}</p> : null}
+            </Field>
+          </motion.div>
+        )}
+
+        {form.offenseType === 'Vandalism' && (
+          <motion.div
+            key="vandalism-fields"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5"
+          >
+            <Field label="Property Damaged *">
+              <input
+                type="text"
+                value={form.propertyDamaged}
+                onChange={set('propertyDamaged')}
+                data-field="propertyDamaged"
+                placeholder="Describe damaged property"
+                className={getInputClass('propertyDamaged')}
+              />
+              {errors.propertyDamaged ? <p className="text-xs text-red-600">{errors.propertyDamaged}</p> : null}
+            </Field>
+            <Field label="Estimated Damage Cost *">
+              <input
+                type="number"
+                value={form.damageCost}
+                onChange={set('damageCost')}
+                data-field="damageCost"
+                min="0"
+                placeholder="Enter estimated amount"
+                className={getInputClass('damageCost')}
+              />
+              {errors.damageCost ? <p className="text-xs text-red-600">{errors.damageCost}</p> : null}
+            </Field>
+          </motion.div>
+        )}
+
+        {form.offenseType === 'Other' && (
+          <motion.div
+            key="other-offense-fields"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="grid grid-cols-1 gap-y-5"
+          >
+            <Field label="Custom Offense Description *">
+              <input
+                type="text"
+                value={form.customOffense}
+                onChange={set('customOffense')}
+                data-field="customOffense"
+                placeholder="Enter custom offense"
+                className={getInputClass('customOffense')}
+              />
+              {errors.customOffense ? <p className="text-xs text-red-600">{errors.customOffense}</p> : null}
+            </Field>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Field label="Incident Description">
         <textarea
           value={form.description}
           onChange={set('description')}
           rows={5}
-          placeholder="Describe the incident in detail..."
+          placeholder="Describe the incident in detail, including time, location, and involved parties..."
           className={`${inputCls} resize-y`}
         />
       </Field>
@@ -235,7 +414,7 @@ function StepEvidence({ dragOver, setDragOver }) {
         <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Evidence Upload</h2>
       </div>
       <p className="text-[#64748b] text-sm leading-5">
-        Attach any supporting materials — photos, videos, or witness statements.
+        Attach any supporting materials - photos, videos, or signed witness statements.
       </p>
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -256,80 +435,47 @@ function StepEvidence({ dragOver, setDragOver }) {
   );
 }
 
-function StepQuestionnaire({ intoxicated, setIntoxicated, cooperated, setCooperated, repeated, setRepeated }) {
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="material-symbols-outlined text-[#4f46e5] text-[20px]">psychology</span>
-        <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Questionnaire</h2>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <p className="text-[#0f172a] font-semibold text-base leading-6">Was the student intoxicated?</p>
-        <div className="flex gap-4 pt-3">
-          {[{ value: true, label: 'Yes' }, { value: false, label: 'No' }].map(({ value, label }) => (
-            <label key={String(value)} className="flex-1 cursor-pointer">
-              <input type="radio" className="sr-only" checked={intoxicated === value} onChange={() => setIntoxicated(value)} />
-              <div className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${intoxicated === value ? 'bg-[#f0f4ff] border-[#4f46e5]' : 'bg-white border-[#e2e4ea]'}`}>
-                <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${intoxicated === value ? 'border-[#4f46e5] bg-[#4f46e5]' : 'border-[#cbd5e1]'}`}>
-                  {intoxicated === value && <div className="w-2 h-2 rounded-full bg-white" />}
-                </div>
-                <span className="text-[#334155] text-base font-medium">{label}</span>
-              </div>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <p className="text-[#0f172a] font-semibold text-base leading-6">Did the student cooperate?</p>
-        <div className="inline-flex p-1 bg-[#f6f6f8] rounded-lg gap-1">
-          {['Yes', 'No'].map((opt) => {
-            const val = opt === 'Yes';
-            return (
-              <button key={opt} type="button" onClick={() => setCooperated(val)}
-                className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${cooperated === val ? 'bg-white text-[#4f46e5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]' : 'text-[#475569] hover:text-[#0f172a]'}`}>
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <p className="text-[#0f172a] font-semibold text-base leading-6">Is this a repeated offense?</p>
-        <div className="inline-flex p-1 bg-[#f6f6f8] rounded-lg gap-1">
-          {['Yes', 'No'].map((opt) => {
-            const val = opt === 'Yes';
-            return (
-              <button key={opt} type="button" onClick={() => setRepeated(val)}
-                className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${repeated === val ? 'bg-white text-[#4f46e5] shadow-[0_1px_2px_rgba(0,0,0,0.05)]' : 'text-[#475569] hover:text-[#0f172a]'}`}>
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StepReview({ form, intoxicated, cooperated, repeated }) {
+function StepReview({ form }) {
   const rows = [
-    { label: 'Student Name', value: form.studentName || '—' },
-    { label: 'Enrollment Number', value: form.enrollmentNumber || '—' },
-    { label: 'Department', value: form.department || '—' },
-    { label: 'Year', value: form.year || '—' },
-    { label: 'Hostel', value: form.hostel || '—' },
-    { label: 'Room', value: form.room || '—' },
-    { label: 'Date', value: form.date || '—' },
-    { label: 'Time', value: form.time || '—' },
-    { label: 'Location', value: form.location || '—' },
-    { label: 'Offense Type', value: form.offenseType || '—' },
-    { label: 'Intoxicated', value: intoxicated === null ? '—' : intoxicated ? 'Yes' : 'No' },
-    { label: 'Cooperated', value: cooperated ? 'Yes' : 'No' },
-    { label: 'Repeated Offense', value: repeated ? 'Yes' : 'No' },
+    { label: 'Student Name', value: form.studentName || '-' },
+    { label: 'Enrollment Number', value: form.rollNumber || '-' },
+    { label: 'Department', value: form.department || '-' },
+    { label: 'Year', value: form.year || '-' },
+    { label: 'Hostel', value: form.hostel || '-' },
+    { label: 'Room Number', value: form.roomNo || '-' },
+    { label: 'Offense Type', value: form.offenseType || '-' },
+    { label: 'Time of Incident', value: form.incidentTime || '-' },
   ];
+
+  if (form.offenseType === 'Substance Abuse') {
+    rows.push({
+      label: 'Substance Type',
+      value: form.substanceType === 'Other' ? (form.customSubstance || 'Other') : (form.substanceType || '-'),
+    });
+
+    if (form.substanceType === 'Alcohol') {
+      rows.push({ label: 'Alcohol Reading', value: form.alcoholReading || '-' });
+      rows.push({
+        label: 'Location Found',
+        value: form.locationFound === 'Other' ? (form.customLocation || 'Other') : (form.locationFound || '-'),
+      });
+    }
+  }
+
+  if (form.offenseType === 'Harassment') {
+    rows.push({ label: 'Victim Name', value: form.victimName || '-' });
+    rows.push({ label: 'Harassment Type', value: form.harassmentType ? toTitleCase(form.harassmentType) : '-' });
+  }
+
+  if (form.offenseType === 'Vandalism') {
+    rows.push({ label: 'Property Damaged', value: form.propertyDamaged || '-' });
+    rows.push({ label: 'Estimated Damage Cost', value: form.damageCost ? `Rs. ${form.damageCost}` : '-' });
+  }
+
+  if (form.offenseType === 'Other') {
+    rows.push({ label: 'Custom Offense', value: form.customOffense || '-' });
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
@@ -355,25 +501,141 @@ function StepReview({ form, intoxicated, cooperated, repeated }) {
   );
 }
 
+function StepSubmit({ caseResult, loading, error, onSubmit, onNavigateDashboard }) {
+  if (caseResult) {
+    return (
+      <div className="flex flex-col items-center gap-6 py-4">
+        <div className="w-16 h-16 rounded-full bg-[#ecfdf5] flex items-center justify-center">
+          <span className="material-symbols-outlined text-[#047857] text-[36px]">check_circle</span>
+        </div>
+        <div className="text-center flex flex-col gap-2">
+          <h2 className="text-[#0f172a] font-bold text-[22px]">Case Submitted Successfully</h2>
+          <p className="text-[#64748b] text-sm">Your case has been registered and is now under review.</p>
+        </div>
+        <div className="bg-[#ecfdf5] border border-[#a7f3d0] rounded-xl px-8 py-4 flex flex-col items-center gap-1">
+          <span className="text-[#065f46] text-xs font-semibold uppercase tracking-widest">Case Token</span>
+          <span className="text-[#047857] font-bold text-2xl" style={{ fontFamily: 'Liberation Mono, monospace' }}>
+            {caseResult.token}
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-4 w-full max-w-xs">
+          {[
+            { label: 'Level', value: `Level ${caseResult.offenseLevel}` },
+            { label: 'Fine', value: `Rs. ${caseResult.fine?.toLocaleString()}` },
+            { label: 'Points', value: `-${caseResult.penaltyPoints} pts` },
+          ].map(({ label, value }) => (
+            <div key={label} className="bg-white border border-[#d1fae5] rounded-lg p-3 text-center">
+              <p className="text-[#047857] font-bold text-sm">{value}</p>
+              <p className="text-[#065f46] text-xs">{label}</p>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={onNavigateDashboard}
+          className="px-8 py-3 bg-[#4f46e5] text-white text-base font-medium rounded-lg hover:bg-[#162d6b] transition-colors"
+        >
+          Back to Dashboard
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="material-symbols-outlined text-[#4f46e5] text-[20px]">send</span>
+        <h2 className="text-[#0f172a] font-bold text-[18px] leading-7">Submit Case</h2>
+      </div>
+      <p className="text-[#64748b] text-sm leading-5">
+        By submitting, you confirm that all information provided is accurate and complete.
+      </p>
+      {error && (
+        <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          <span className="material-symbols-outlined text-red-500 text-[18px] mt-0.5">error</span>
+          <p className="text-red-700 text-sm">{error}</p>
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={loading}
+        className="flex items-center justify-center gap-2 w-full px-8 py-4 bg-[#c02525] text-white text-base font-bold rounded-lg shadow-[0_10px_15px_-3px_rgba(192,37,37,0.3)] hover:bg-[#a81f1f] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {loading ? (
+          <>
+            <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+            Submitting...
+          </>
+        ) : (
+          <>
+            Submit Case
+            <span className="material-symbols-outlined text-[18px]">send</span>
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
 export default function RegisterCase() {
   const navigate = useNavigate();
   const usersCacheRef = useRef(null);
+
   const [currentStep, setCurrentStep] = useState(0);
-  const [showActions, setShowActions] = useState(false);
 
   const [form, setForm] = useState({
-    studentName: '', enrollmentNumber: '', department: '', year: '',
-    hostel: 'BSH', room: '', date: '', time: '', location: '',
-    offenseType: '', description: '',
+    studentName: '', rollNumber: '', department: '', year: '', hostel: '', roomNo: '',
+    offenseType: '',
+    incidentTime: '',
+    substanceType: '',
+    customSubstance: '',
+    alcoholReading: '',
+    locationFound: '',
+    customLocation: '',
+    victimName: '',
+    harassmentType: '',
+    propertyDamaged: '',
+    damageCost: '',
+    customOffense: '',
+    description: '',
   });
-  const [intoxicated, setIntoxicated] = useState(null);
-  const [cooperated, setCooperated] = useState(true);
-  const [repeated, setRepeated] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
+  const [errors, setErrors] = useState({});
   const [lookupLoading, setLookupLoading] = useState(false);
-  const [lookupError, setLookupError] = useState('');
+  const [lookupStatusType, setLookupStatusType] = useState('');
+  const [lookupStatusMessage, setLookupStatusMessage] = useState('');
+  const [dragOver, setDragOver] = useState(false);
 
-  const set = (field) => (e) => setForm((p) => ({ ...p, [field]: e.target.value }));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [caseResult, setCaseResult] = useState(null);
+  const [studentId, setStudentId] = useState(null);
+
+  const set = (field) => (e) => {
+    const value = e.target.value;
+    setForm((p) => ({ ...p, [field]: value }));
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      return { ...prev, [field]: '' };
+    });
+  };
+
+  const getInputClass = (field) => (
+    `${inputCls} ${errors[field] ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`
+  );
+
+  const resetIncidentDependentFields = () => ({
+    substanceType: '',
+    customSubstance: '',
+    alcoholReading: '',
+    locationFound: '',
+    customLocation: '',
+    victimName: '',
+    harassmentType: '',
+    propertyDamaged: '',
+    damageCost: '',
+    customOffense: '',
+  });
 
   const lookupStudentByEnrollment = async (enrollmentInput) => {
     const enrollment = String(enrollmentInput || '').trim().toLowerCase();
@@ -381,16 +643,21 @@ export default function RegisterCase() {
 
     try {
       setLookupLoading(true);
-      setLookupError('');
+      setLookupStatusType('');
+      setLookupStatusMessage('');
 
       const users = usersCacheRef.current ?? await getUsers();
       if (!usersCacheRef.current) usersCacheRef.current = users;
 
       const user = users.find((entry) => String(entry.enrollment_no || '').trim().toLowerCase() === enrollment);
       if (!user) {
-        setLookupError('No student found for this enrollment number.');
+        setStudentId(null);
+        setLookupStatusType('error');
+        setLookupStatusMessage('No student found.');
         return;
       }
+
+      setStudentId(user.id);
 
       setForm((prev) => ({
         ...prev,
@@ -398,37 +665,176 @@ export default function RegisterCase() {
         department: user.program ? toTitleCase(user.program) : prev.department,
         year: user.year ? toYearLabel(user.year) : prev.year,
         hostel: user.hostel || prev.hostel,
-        room: user.room || prev.room,
+        roomNo: user.room || prev.roomNo,
       }));
+      setLookupStatusType('success');
+      setLookupStatusMessage('Student record found.');
     } catch (err) {
-      setLookupError(err?.message || 'Failed to fetch student details.');
+      setLookupStatusType('error');
+      setLookupStatusMessage(err?.message || 'No student found.');
     } finally {
       setLookupLoading(false);
     }
   };
 
   const handleEnrollmentChange = (e) => {
-    setLookupError('');
-    setForm((p) => ({ ...p, enrollmentNumber: e.target.value }));
+    setLookupStatusType('');
+    setLookupStatusMessage('');
+    setStudentId(null);
+    setForm((p) => ({ ...p, rollNumber: e.target.value }));
+    setErrors((prev) => {
+      if (!prev.rollNumber) return prev;
+      return { ...prev, rollNumber: '' };
+    });
+  };
+
+  const handleEnrollmentKeyDown = (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    lookupStudentByEnrollment(e.currentTarget.value);
   };
 
   const handleEnrollmentBlur = () => {
-    lookupStudentByEnrollment(form.enrollmentNumber);
+    lookupStudentByEnrollment(form.rollNumber);
   };
 
-  const handleSubmit = () => {
-    setShowActions(true);
+  const handleOffenseTypeChange = (e) => {
+    const selectedOffense = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      offenseType: selectedOffense,
+      ...resetIncidentDependentFields(),
+    }));
+    setErrors((prev) => ({
+      ...prev,
+      offenseType: '',
+      substanceType: '',
+      customSubstance: '',
+      alcoholReading: '',
+      locationFound: '',
+      customLocation: '',
+      victimName: '',
+      harassmentType: '',
+      propertyDamaged: '',
+      damageCost: '',
+      customOffense: '',
+    }));
   };
 
-  const handleEscalate = () => {
-    navigate('/warden/cases');
+  const scrollToFirstError = (nextErrors) => {
+    const firstField = Object.keys(nextErrors).find((key) => nextErrors[key]);
+    if (!firstField) return;
+    const node = document.querySelector(`[data-field="${firstField}"]`);
+    if (node) {
+      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (typeof node.focus === 'function') node.focus();
+    }
   };
 
-  const handleWarning = () => {
-    navigate('/warden/cases');
+  const validateStep = (step) => {
+    const nextErrors = {};
+
+    if (step === 0) {
+      if (!String(form.rollNumber || '').trim()) {
+        nextErrors.rollNumber = 'This field is required';
+      }
+    }
+
+    if (step === 1) {
+      if (!String(form.offenseType || '').trim()) {
+        nextErrors.offenseType = 'This field is required';
+      }
+      if (!String(form.incidentTime || '').trim()) {
+        nextErrors.incidentTime = 'This field is required';
+      }
+      if (form.offenseType === 'Substance Abuse') {
+        if (!String(form.substanceType || '').trim()) {
+          nextErrors.substanceType = 'This field is required';
+        }
+        if (form.substanceType === 'Other' && !String(form.customSubstance || '').trim()) {
+          nextErrors.customSubstance = 'This field is required';
+        }
+        if (form.substanceType === 'Alcohol') {
+          if (!String(form.alcoholReading || '').trim()) {
+            nextErrors.alcoholReading = 'This field is required';
+          }
+          if (!String(form.locationFound || '').trim()) {
+            nextErrors.locationFound = 'This field is required';
+          }
+          if (form.locationFound === 'Other' && !String(form.customLocation || '').trim()) {
+            nextErrors.customLocation = 'This field is required';
+          }
+        }
+      }
+
+      if (form.offenseType === 'Harassment') {
+        if (!String(form.victimName || '').trim()) {
+          nextErrors.victimName = 'This field is required';
+        }
+        if (!String(form.harassmentType || '').trim()) {
+          nextErrors.harassmentType = 'This field is required';
+        }
+      }
+
+      if (form.offenseType === 'Vandalism') {
+        if (!String(form.propertyDamaged || '').trim()) {
+          nextErrors.propertyDamaged = 'This field is required';
+        }
+        if (!String(form.damageCost || '').trim()) {
+          nextErrors.damageCost = 'This field is required';
+        }
+      }
+
+      if (form.offenseType === 'Other') {
+        if (!String(form.customOffense || '').trim()) {
+          nextErrors.customOffense = 'This field is required';
+        }
+      }
+    }
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) {
+      scrollToFirstError(nextErrors);
+      return false;
+    }
+    return true;
   };
 
-  const goNext = () => setCurrentStep((s) => Math.min(STEPS.length - 1, s + 1));
+  const handleSubmit = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      if (!studentId || !form.offenseType) {
+        throw new Error('Please provide enrollment number and offense type before submitting.');
+      }
+
+      const payload = await createCase({
+        student_id: studentId,
+        offense_type: form.offenseType === 'Other' ? (form.customOffense || 'Other') : form.offenseType,
+        description: form.description || null,
+        location: `${form.hostel || ''}${form.roomNo ? ` Room ${form.roomNo}` : ''}`.trim() || null,
+        incident_date: null,
+        severity: 'low',
+      });
+
+      setCaseResult({
+        token: `#${payload.id}`,
+        offenseLevel: 1,
+        severityScore: 25,
+        fine: Number(payload.penalty_points || 0) * 100,
+        penaltyPoints: Number(payload.penalty_points || 0),
+      });
+    } catch (err) {
+      setError(err?.message ?? 'Failed to submit case. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const goNext = () => {
+    if (!validateStep(currentStep)) return;
+    setCurrentStep((s) => Math.min(STEPS.length - 1, s + 1));
+  };
   const goPrev = () => setCurrentStep((s) => Math.max(0, s - 1));
   const isLast = currentStep === STEPS.length - 1;
   const isFirst = currentStep === 0;
@@ -439,17 +845,27 @@ export default function RegisterCase() {
       set={set}
       onEnrollmentChange={handleEnrollmentChange}
       onEnrollmentBlur={handleEnrollmentBlur}
+      onEnrollmentKeyDown={handleEnrollmentKeyDown}
       lookupLoading={lookupLoading}
-      lookupError={lookupError}
+      lookupStatusType={lookupStatusType}
+      lookupStatusMessage={lookupStatusMessage}
+      errors={errors}
+      getInputClass={getInputClass}
     />,
-    <StepIncidentDetails form={form} set={set} />,
+    <StepIncidentDetails
+      form={form}
+      set={set}
+      onOffenseTypeChange={handleOffenseTypeChange}
+      errors={errors}
+      getInputClass={getInputClass}
+    />,
     <StepEvidence dragOver={dragOver} setDragOver={setDragOver} />,
-    <StepQuestionnaire
-      intoxicated={intoxicated} setIntoxicated={setIntoxicated}
-      cooperated={cooperated} setCooperated={setCooperated}
-      repeated={repeated} setRepeated={setRepeated}
+    <StepReview form={form} />,
+    <StepSubmit
+      caseResult={caseResult} loading={loading} error={error}
+      onSubmit={handleSubmit}
+      onNavigateDashboard={() => navigate('/warden/cases')}
     />,
-    <StepReview form={form} intoxicated={intoxicated} cooperated={cooperated} repeated={repeated} />,
   ];
 
   return (
@@ -457,13 +873,12 @@ export default function RegisterCase() {
       <WardenSidebar />
       <main className="pt-14 md:pt-0 md:pl-64 overflow-y-auto py-8 md:py-[60px] px-4 md:px-8">
         <div className="max-w-[1000px] mx-auto flex flex-col gap-6">
-
           <div className="flex flex-col gap-2">
             <h1 className="text-[#0f172a] text-[28px] md:text-[30px] font-black tracking-[-0.9px] leading-tight md:pt-10 pt-5">
-              Register New Case
+              Register New Disciplinary Case
             </h1>
             <p className="text-[#64748b] text-base leading-7">
-              Submit details to register a disciplinary case.
+              Submit details below to initiate an automated disciplinary review.
             </p>
             <div className="pb-2">
               <ProgressBar steps={STEPS} currentStep={currentStep} />
@@ -473,77 +888,40 @@ export default function RegisterCase() {
           <div className="flex flex-col lg:flex-row gap-8 items-start">
             <div className="flex-1 min-w-0">
               <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-[0_1px_2px_rgba(0,0,0,0.05)] p-8 flex flex-col gap-6">
-                {!showActions ? (
-                  <>
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={currentStep}
-                        initial={{ opacity: 0, x: 24 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -24 }}
-                        transition={{ duration: 0.22, ease: 'easeInOut' }}
-                      >
-                        {stepContent[currentStep]}
-                      </motion.div>
-                    </AnimatePresence>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentStep}
+                    initial={{ opacity: 0, x: 24 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -24 }}
+                    transition={{ duration: 0.22, ease: 'easeInOut' }}
+                  >
+                    {stepContent[currentStep]}
+                  </motion.div>
+                </AnimatePresence>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-[#e2e8f0]">
+                {!(isLast && caseResult) && (
+                  <div className="flex items-center justify-between pt-2 border-t border-[#e2e8f0]">
+                    <button
+                      type="button"
+                      onClick={goPrev}
+                      disabled={isFirst}
+                      className="flex items-center gap-2 px-6 py-3 text-[#475569] text-base font-medium hover:text-[#0f172a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                      Previous
+                    </button>
+
+                    {!isLast && (
                       <button
                         type="button"
-                        onClick={goPrev}
-                        disabled={isFirst}
-                        className="flex items-center gap-2 px-6 py-3 text-[#475569] text-base font-medium hover:text-[#0f172a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        onClick={goNext}
+                        className="flex items-center gap-2 px-8 py-3 bg-[#5c56e9] text-white text-base font-medium rounded-lg shadow-[0_10px_15px_-3px_rgba(31,58,137,0.3)] hover:bg-[#4e49e4] transition-colors"
                       >
-                        <span className="material-symbols-outlined text-[14px]">arrow_back</span>
-                        Previous
+                        Next Step
+                        <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                       </button>
-
-                      {!isLast ? (
-                        <button
-                          type="button"
-                          onClick={goNext}
-                          className="flex items-center gap-2 px-8 py-3 bg-[#5c56e9] text-white text-base font-medium rounded-lg shadow-[0_10px_15px_-3px_rgba(31,58,137,0.3)] hover:bg-[#4e49e4] transition-colors"
-                        >
-                          Next Step
-                          <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleSubmit}
-                          className="flex items-center gap-2 px-8 py-3 bg-[#c02525] text-white text-base font-bold rounded-lg shadow-[0_10px_15px_-3px_rgba(192,37,37,0.3)] hover:bg-[#a81f1f] transition-colors"
-                        >
-                          Submit Case
-                          <span className="material-symbols-outlined text-[18px]">send</span>
-                        </button>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center gap-6 py-4">
-                    <div className="w-16 h-16 rounded-full bg-[#ecfdf5] flex items-center justify-center">
-                      <span className="material-symbols-outlined text-[#047857] text-[36px]">check_circle</span>
-                    </div>
-                    <div className="text-center flex flex-col gap-2">
-                      <h2 className="text-[#0f172a] font-bold text-[22px]">Case Registered Successfully</h2>
-                      <p className="text-[#64748b] text-sm">Choose an action to proceed with this case.</p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3 w-full">
-                      <button
-                        onClick={handleEscalate}
-                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#4f46e5] text-white text-base font-semibold rounded-lg hover:bg-[#4338ca] transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">gavel</span>
-                        Escalate to Chief Warden
-                      </button>
-                      <button
-                        onClick={handleWarning}
-                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 text-white text-base font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">warning</span>
-                        Issue Warning
-                      </button>
-                    </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -553,13 +931,14 @@ export default function RegisterCase() {
               <div className="bg-white border border-[#e2e8f0] rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.05)] p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[#0f172a] text-[16px]">info</span>
-                  <h3 className="text-[#0f172a] font-bold text-sm leading-5">Guidelines</h3>
+                  <h3 className="text-[#0f172a] font-bold text-sm leading-5">Filling Guidelines</h3>
                 </div>
                 <div className="flex flex-col gap-3">
                   {[
-                    "Ensure enrollment number is accurate.",
-                    "Select the primary offense if multiple violations occurred.",
-                    "Attach clear evidence or witness statements.",
+                    'Ensure the Roll Number is exact to auto-fetch academic history.',
+                    'Press Enter after enrollment number to auto-fill student details.',
+                    'Select the most severe offense if multiple violations occurred.',
+                    'Attach clear evidence or signed witness statements.',
                   ].map((tip, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <div className="w-5 h-5 rounded-full bg-[#f1f5f9] flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -568,6 +947,51 @@ export default function RegisterCase() {
                       <p className="text-[#475569] text-xs leading-4">{tip}</p>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              <div className="relative rounded-xl p-4 overflow-hidden border bg-[#ecfdf5] border-[#a7f3d0]">
+                <div className="absolute top-0 right-0 opacity-10 p-3">
+                  <span className="material-symbols-outlined text-[60px] text-emerald-600">token</span>
+                </div>
+                <div className="relative flex flex-col gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[#047857] text-[16px]">
+                      {caseResult ? 'check_circle' : 'verified'}
+                    </span>
+                    <span className="text-[#047857] font-bold text-[10px] tracking-[0.7px] uppercase">
+                      {caseResult ? 'Case Registered' : 'Token Generation'}
+                    </span>
+                  </div>
+                  <p className="text-[#065f46] text-xs leading-4">
+                    {caseResult
+                      ? 'Case created. Use this token to track.'
+                      : 'A unique tracking ID will be generated on submission.'}
+                  </p>
+                  <div className="flex items-center justify-between bg-white border border-[#d1fae5] rounded px-3 py-2 mt-1">
+                    <span className="text-[#047857] font-bold text-base" style={{ fontFamily: 'Liberation Mono, monospace' }}>
+                      {caseResult ? caseResult.token : 'DAC-2026-XXXX'}
+                    </span>
+                    {caseResult && (
+                      <button type="button" title="Copy token" onClick={() => navigator.clipboard.writeText(caseResult.token)}>
+                        <span className="material-symbols-outlined text-[#047857] text-[18px]">content_copy</span>
+                      </button>
+                    )}
+                  </div>
+                  {caseResult && (
+                    <div className="grid grid-cols-3 gap-1.5 mt-1">
+                      {[
+                        { label: 'Level', value: `Lvl ${caseResult.offenseLevel}` },
+                        { label: 'Fine', value: `Rs.${caseResult.fine?.toLocaleString()}` },
+                        { label: 'Points', value: `-${caseResult.penaltyPoints}` },
+                      ].map(({ label, value }) => (
+                        <div key={label} className="bg-white border border-[#d1fae5] rounded p-1.5 text-center">
+                          <p className="text-[#047857] font-bold text-xs">{value}</p>
+                          <p className="text-[#065f46] text-[9px]">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

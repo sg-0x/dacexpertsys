@@ -1,8 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import pool from './config/db.js';
+import { ensureWorkflowSchema } from './config/bootstrap.js';
 import usersRoutes from './routes/users.routes.js';
 import casesRoutes from './routes/cases.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import notificationsRoutes from './routes/notifications.routes.js';
+import { verifyToken } from './middleware/auth.middleware.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -24,11 +28,24 @@ app.get('/test', async (req, res) => {
   }
 });
 
-app.use('/users', usersRoutes);
-app.use('/cases', casesRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/cases', casesRoutes);
+app.use('/api', authRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
-});
+app.use('/users', verifyToken, usersRoutes);
+app.use('/cases', verifyToken, casesRoutes);
+app.use('/api/users', verifyToken, usersRoutes);
+app.use('/api/cases', verifyToken, casesRoutes);
+app.use('/api/notifications', verifyToken, notificationsRoutes);
+
+async function startServer() {
+  try {
+    await ensureWorkflowSchema();
+    app.listen(PORT, () => {
+      console.log(`Backend server running on http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('Server startup failed:', error);
+    process.exit(1);
+  }
+}
+
+startServer();

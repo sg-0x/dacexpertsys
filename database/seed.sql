@@ -39,13 +39,13 @@ VALUES ('Admin User','admin@test.com','admin');
 -- CASES (5)
 -- =========================
 
-INSERT INTO cases (student_id, reported_by, offense_type, severity, status, description, location, penalty_points)
+INSERT INTO cases (student_id, created_by, assigned_to_role, reported_by, offense_type, severity, status, description, location, penalty_points)
 VALUES
-(1, 11, 'smoking', 'low', 'pending', 'Smoking in hostel', 'BSH', 10),
-(2, 11, 'alcohol', 'medium', 'investigation', 'Alcohol possession', 'BSH', 20),
-(3, 12, 'late entry', 'low', 'resolved', 'Late hostel entry', 'GH', 5),
-(4, 12, 'noise', 'low', 'pending', 'Disturbing others', 'GH', 5),
-(5, 11, 'ragging', 'high', 'dac_review', 'Ragging junior', 'BSH', 50);
+(1, 11, 'chief_warden', 11, 'smoking', 'low', 'pending_chief', 'Smoking in hostel', 'BSH', 10),
+(2, 11, 'dsw', 11, 'alcohol', 'medium', 'pending_dsw', 'Alcohol possession', 'BSH', 20),
+(3, 12, NULL, 12, 'late entry', 'low', 'resolved', 'Late hostel entry', 'GH', 5),
+(4, 12, 'chief_warden', 12, 'noise', 'low', 'pending_chief', 'Disturbing others', 'GH', 5),
+(5, 11, 'admin', 11, 'ragging', 'high', 'pending_admin', 'Ragging junior', 'BSH', 50);
 
 
 -- =========================
@@ -91,10 +91,10 @@ VALUES
 -- NOTIFICATIONS
 -- =========================
 
-INSERT INTO notifications (user_id, message)
+INSERT INTO notifications (user_id, message, case_id, is_read)
 VALUES
-(1, 'You have a new case'),
-(2, 'Your case is under investigation'),
-(3, 'Case resolved'),
-(4, 'Attend DAC meeting'),
-(5, 'Penalty assigned');
+(13, 'New case created by Warden. Click to review.', 1, FALSE),
+(14, 'Case approved by Chief Warden. Ready for review.', 2, FALSE),
+(15, 'Case forwarded by DSW. Final decision required.', 5, FALSE),
+(11, 'Your case has moved to the next review stage.', 2, FALSE),
+(12, 'Your case has been resolved by Admin.', 3, TRUE);

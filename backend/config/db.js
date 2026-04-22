@@ -11,11 +11,11 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const { Pool } = pg;
 
 const pool = new Pool({
-  host: process.env.PG_HOST || 'localhost',
-  user: process.env.PG_USER || 'postgres',
-  database: process.env.PG_DATABASE || 'dac_system',
-  password: process.env.PG_PASSWORD || 'your_postgres_password',
-  port: Number(process.env.PG_PORT) || 5432,
+  host: process.env.PG_HOST || process.env.PGHOST || 'localhost',
+  user: process.env.PG_USER || process.env.PGUSER || 'postgres',
+  database: process.env.PG_DATABASE || process.env.PGDATABASE || 'dac_system',
+  password: process.env.PG_PASSWORD || process.env.PGPASSWORD || 'your_postgres_password',
+  port: Number(process.env.PG_PORT || process.env.PGPORT) || 5432,
 });
 
 export default pool;

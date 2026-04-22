@@ -4,7 +4,7 @@
 
 CREATE TYPE user_role AS ENUM ('student', 'warden', 'chief_warden', 'dsw', 'admin');
 
-CREATE TYPE case_status AS ENUM ('warning', 'pending', 'investigation', 'dac_review', 'resolved');
+CREATE TYPE case_status AS ENUM ('pending_chief', 'pending_dsw', 'pending_admin', 'resolved');
 
 CREATE TYPE case_severity AS ENUM ('low', 'medium', 'high', 'critical');
 
@@ -32,6 +32,8 @@ CREATE TABLE users (
 CREATE TABLE cases (
     id SERIAL PRIMARY KEY,
     student_id INT NOT NULL REFERENCES users(id),
+    created_by INT REFERENCES users(id),
+    assigned_to_role user_role,
     reported_by INT REFERENCES users(id),
     resolved_by INT REFERENCES users(id),
     offense_type TEXT,
@@ -73,6 +75,7 @@ CREATE TABLE notifications (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id),
     message TEXT,
-    read BOOLEAN DEFAULT FALSE,
+    case_id INT REFERENCES cases(id),
+    is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW()
 );

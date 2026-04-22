@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChiefWardenSidebar from '../../components/ChiefWardenSidebar';
+import NotificationBell from '../../components/NotificationBell';
 import { pageVariants, listVariants, itemVariants } from '../../lib/motion';
-import { getCases, getUsers } from '../../services/api';
+import { approveCase, getCases, getUsers } from '../../services/api';
 
 const AVATAR_STYLES = [
   { avatarBg: 'bg-pink-100', avatarText: 'text-pink-700' },
@@ -49,78 +50,90 @@ export default function ChiefWardenDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const loadData = async (mounted = true) => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const [casesResponse, usersResponse] = await Promise.all([
+        getCases({ role: 'chief_warden', status: 'pending_chief' }),
+        getUsers(),
+      ]);
+
+      if (!hasLoggedResponseRef.current) {
+        console.log('ChiefWardenDashboard API response:', { cases: casesResponse, users: usersResponse });
+        hasLoggedResponseRef.current = true;
+      }
+
+      const usersById = Object.fromEntries(usersResponse.map((user) => [String(user.id), user]));
+      const mappedCases = casesResponse.map((entry, index) => {
+        const student = usersById[String(entry.student_id)] ?? {};
+        const status = toTitleCase(entry.status);
+        const meta = statusMeta(status);
+        const severity = toTitleCase(entry.severity) || 'Low';
+        const name = student.name || 'Unknown Student';
+        const style = AVATAR_STYLES[index % AVATAR_STYLES.length];
+        return {
+          id: String(entry.id),
+          caseId: entry.id,
+          name,
+          dept: student.program ? toTitleCase(student.program) : 'N/A',
+          initials: name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase(),
+          avatarBg: style.avatarBg,
+          avatarText: style.avatarText,
+          offense: toTitleCase(entry.offense_type) || 'N/A',
+          severity,
+          severityClass: severityClass(severity),
+          statusDot: meta.dot,
+          status: meta.label,
+          action: meta.action,
+          date: new Date(entry.incident_date ?? entry.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        };
+      });
+
+      const total = mappedCases.length;
+      const pending = mappedCases.length;
+      const escalatedDsw = 0;
+      const resolved = 0;
+
+      const cards = [
+        { label: 'Total Received Cases', value: String(total), icon: 'folder_shared', gradient: 'from-[#4f46e5] to-[#6366f1]', iconBg: 'bg-white/20' },
+        { label: 'Pending Review', value: String(pending), icon: 'pending_actions', gradient: 'from-[#f59e0b] to-[#fbbf24]', iconBg: 'bg-white/20' },
+        { label: 'Escalated to DSW', value: String(escalatedDsw), icon: 'gavel', gradient: 'from-[#8b5cf6] to-[#a78bfa]', iconBg: 'bg-white/20' },
+        { label: 'Resolved Cases', value: String(resolved), icon: 'check_circle', gradient: 'from-[#10b981] to-[#34d399]', iconBg: 'bg-white/20' },
+      ];
+
+      if (mounted) {
+        setCases(mappedCases);
+        setStatCards(cards);
+      }
+    } catch (loadError) {
+      if (mounted) {
+        setError(loadError?.message || 'Failed to fetch dashboard data.');
+        setCases([]);
+        setStatCards([]);
+      }
+    } finally {
+      if (mounted) setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
-
-    async function loadData() {
-      try {
-        setLoading(true);
-        setError('');
-
-        const [casesResponse, usersResponse] = await Promise.all([getCases(), getUsers()]);
-
-        if (!hasLoggedResponseRef.current) {
-          console.log('ChiefWardenDashboard API response:', { cases: casesResponse, users: usersResponse });
-          hasLoggedResponseRef.current = true;
-        }
-
-        const usersById = Object.fromEntries(usersResponse.map((user) => [String(user.id), user]));
-        const mappedCases = casesResponse.map((entry, index) => {
-          const student = usersById[String(entry.student_id)] ?? {};
-          const status = toTitleCase(entry.status);
-          const meta = statusMeta(status);
-          const severity = toTitleCase(entry.severity) || 'Low';
-          const name = student.name || 'Unknown Student';
-          const style = AVATAR_STYLES[index % AVATAR_STYLES.length];
-          return {
-            id: String(entry.id),
-            name,
-            dept: student.program ? toTitleCase(student.program) : 'N/A',
-            initials: name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase(),
-            avatarBg: style.avatarBg,
-            avatarText: style.avatarText,
-            offense: toTitleCase(entry.offense_type) || 'N/A',
-            severity,
-            severityClass: severityClass(severity),
-            statusDot: meta.dot,
-            status: meta.label,
-            action: meta.action,
-            date: new Date(entry.incident_date ?? entry.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-          };
-        });
-
-        const total = mappedCases.length;
-        const pending = casesResponse.filter((entry) => ['pending', 'pending_review', 'dac_review'].includes(String(entry.status || '').toLowerCase())).length;
-        const escalatedDsw = casesResponse.filter((entry) => String(entry.status || '').toLowerCase() === 'investigation').length;
-        const resolved = casesResponse.filter((entry) => String(entry.status || '').toLowerCase() === 'resolved').length;
-
-        const cards = [
-          { label: 'Total Received Cases', value: String(total), icon: 'folder_shared', gradient: 'from-[#4f46e5] to-[#6366f1]', iconBg: 'bg-white/20' },
-          { label: 'Pending Review', value: String(pending), icon: 'pending_actions', gradient: 'from-[#f59e0b] to-[#fbbf24]', iconBg: 'bg-white/20' },
-          { label: 'Escalated to DSW', value: String(escalatedDsw), icon: 'gavel', gradient: 'from-[#8b5cf6] to-[#a78bfa]', iconBg: 'bg-white/20' },
-          { label: 'Resolved Cases', value: String(resolved), icon: 'check_circle', gradient: 'from-[#10b981] to-[#34d399]', iconBg: 'bg-white/20' },
-        ];
-
-        if (mounted) {
-          setCases(mappedCases);
-          setStatCards(cards);
-        }
-      } catch (loadError) {
-        if (mounted) {
-          setError(loadError?.message || 'Failed to fetch dashboard data.');
-          setCases([]);
-          setStatCards([]);
-        }
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    loadData();
+    loadData(mounted);
     return () => {
       mounted = false;
     };
   }, []);
+
+  const onApprove = async (caseId) => {
+    try {
+      await approveCase(caseId);
+      await loadData(true);
+    } catch (approveError) {
+      setError(approveError?.message || 'Failed to approve case');
+    }
+  };
 
   const filtered = cases.filter(
     (c) =>
@@ -151,19 +164,13 @@ export default function ChiefWardenDashboard() {
 
           <div className="flex items-center gap-3">
             <Link
-              to="/chief-warden/register"
-              className="bg-[#10b981] hover:bg-[#059669] text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-            >
-              <span className="material-symbols-outlined text-[16px]">add</span>
-              Register Case
-            </Link>
-            <Link
               to="/chief-warden/cases"
               className="bg-[#4f46e5] hover:bg-[#4338ca] text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
             >
               <span className="material-symbols-outlined text-[16px]">inbox</span>
               Incoming Cases
             </Link>
+            <NotificationBell />
           </div>
         </header>
 
@@ -186,16 +193,9 @@ export default function ChiefWardenDashboard() {
                 <p className="text-indigo-200 text-sm font-medium mb-1">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1">{getGreeting()}, Chief Warden</h1>
                 <p className="text-indigo-200 text-sm leading-relaxed mb-5">
-                  You have <span className="text-white font-semibold">{statCards[1]?.value ?? '0'} cases pending review</span> and <span className="text-white font-semibold">{statCards[2]?.value ?? '0'} cases escalated to DSW</span>.
+                  You have <span className="text-white font-semibold">{statCards[1]?.value ?? '0'} new cases pending review</span>. <Link to="/chief-warden/cases" className="underline font-semibold">Click to review</Link>
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  <Link
-                    to="/chief-warden/register"
-                    className="inline-flex items-center gap-2 bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-colors shadow-md"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">add_circle</span>
-                    Register New Case
-                  </Link>
                   <Link
                     to="/chief-warden/cases"
                     className="inline-flex items-center gap-2 bg-white text-[#4f46e5] px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-50 transition-colors shadow-md"
@@ -293,16 +293,12 @@ export default function ChiefWardenDashboard() {
                           <button
                             onClick={(e) => { 
                               e.stopPropagation(); 
-                              navigate(row.action === 'Review' ? `/chief-warden/cases/${row.id}` : `/chief-warden/view/${row.id}`); 
+                              onApprove(row.caseId);
                             }}
-                            className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                              row.action === 'Review' 
-                                ? 'bg-[#4f46e5] text-white hover:bg-[#4338ca]' 
-                                : 'bg-[#f1f5f9] text-[#64748b] hover:bg-slate-200'
-                            }`}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors bg-[#4f46e5] text-white hover:bg-[#4338ca]"
                           >
-                            <span className="material-symbols-outlined text-[13px]">{row.action === 'Review' ? 'rate_review' : 'visibility'}</span>
-                            {row.action}
+                            <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                            Approve
                           </button>
                         </td>
                       </tr>

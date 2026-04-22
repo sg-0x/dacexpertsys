@@ -10,15 +10,22 @@ const adminSubItems = [
 
 const mainNavItems = [
   { to: '/dashboard',     label: 'Dashboard',      icon: 'dashboard' },
-  { to: '/register-case', label: 'Register Case',  icon: 'edit_document' },
   { to: '/reports',       label: 'Reports',        icon: 'bar_chart' },
+  { to: '/settings',      label: 'Settings',       icon: 'settings' },
 ];
 
 // ── Shared nav content ────────────────────────────────────────────────────────
 function SidebarContent({ onClose }) {
   const navigate  = useNavigate();
   const location  = useLocation();
-  const { currentUser, logout } = useAuth();
+  const { currentUser, role, logout } = useAuth();
+
+  const resolvedMainNavItems = mainNavItems.map((item) => {
+    if (item.to === '/dashboard' && role === 'dsw') {
+      return { ...item, to: '/dsw-dashboard' };
+    }
+    return item;
+  });
 
   const isAdminActive = location.pathname.startsWith('/admin-settings');
   const [adminOpen, setAdminOpen] = useState(isAdminActive);
@@ -48,7 +55,7 @@ function SidebarContent({ onClose }) {
       {/* ── Logo ── */}
       <div className="px-6 pt-7 pb-6 flex items-center gap-3">
         <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0">
-          <img src="./favicon.png" alt="DAC Logo" className="w-10 h-10 object-contain"  />
+          <img src="/favicon.png" alt="DAC Logo" className="w-10 h-10 object-contain"  />
         </div>
         <div className="flex-1">
           <h1 className="text-[#0f172a] font-extrabold text-base leading-tight tracking-tight">DAC System</h1>
@@ -67,7 +74,7 @@ function SidebarContent({ onClose }) {
       {/* ── Nav ── */}
       <nav className="flex-1 overflow-y-auto px-4 pb-4 flex flex-col gap-0.5">
 
-        {mainNavItems.map(({ to, label, icon }) => (
+        {resolvedMainNavItems.map(({ to, label, icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -217,7 +224,7 @@ export default function Sidebar() {
         </button>
         <div className="flex items-center gap-2.5">
           <div>
-            <img src="./favicon.png" alt="DAC Logo" className="w-10 h-10 object-contain" />
+            <img src="/favicon.png" alt="DAC Logo" className="w-10 h-10 object-contain" />
           </div>
           <span className="text-[#0f172a] font-extrabold text-sm tracking-tight">DAC System</span>
         </div>

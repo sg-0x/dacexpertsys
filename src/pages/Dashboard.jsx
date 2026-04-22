@@ -2,8 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
+import NotificationBell from '../components/NotificationBell';
+import { useAuth } from '../context/AuthContext';
 import { pageVariants, listVariants, itemVariants } from '../lib/motion';
-import { getCases, getUsers } from '../services/api';
+import { approveCase, getCases, getUsers } from '../services/api';
 
 const AVATAR_STYLES = [
   { avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700' },
@@ -11,14 +13,6 @@ const AVATAR_STYLES = [
   { avatarBg: 'bg-cyan-100', avatarText: 'text-cyan-700' },
   { avatarBg: 'bg-emerald-100', avatarText: 'text-emerald-700' },
   { avatarBg: 'bg-amber-100', avatarText: 'text-amber-700' },
-];
-
-const INITIAL_NOTIFICATIONS = [
-  { id: 1, icon: 'gavel',          iconBg: 'bg-red-100',     iconColor: 'text-red-600',     title: 'New High-Severity Case', body: 'Case #DAC-2026-049 flagged as Critical — Exam Malpractice.', time: '2 min ago',  read: false },
-  { id: 2, icon: 'pending_actions',iconBg: 'bg-amber-100',   iconColor: 'text-amber-600',   title: 'DAC Review Pending',     body: 'Case #DAC-2026-041 is awaiting committee review.',            time: '18 min ago', read: false },
-  { id: 3, icon: 'check_circle',   iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', title: 'Case Resolved',          body: 'Case #DAC-2026-038 marked as resolved by Admin.',             time: '1 hr ago',   read: false },
-  { id: 4, icon: 'person_add',     iconBg: 'bg-blue-100',    iconColor: 'text-blue-600',    title: 'New User Registered',    body: 'Faculty member Dr. Sharma joined the system.',                time: '3 hr ago',   read: true  },
-  { id: 5, icon: 'rule',           iconBg: 'bg-purple-100',  iconColor: 'text-purple-600',  title: 'Rule Set Updated',       body: 'Disciplinary rule weights updated to v4.3.',                  time: 'Yesterday',  read: true  },
 ];
 
 // ─── Greeting helper ──────────────────────────────────────────────────────────
@@ -54,27 +48,15 @@ function statusDot(status) {
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { role } = useAuth();
   const hasLoggedResponseRef = useRef(false);
   const [search, setSearch]           = useState('');
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
-  const [notifOpen, setNotifOpen]     = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
   const [cases, setCases] = useState([]);
   const [statCards, setStatCards] = useState([]);
   const [newApplicants, setNewApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const notifRef = useRef(null);
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
-  useEffect(() => {
-    function handleClick(e) {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -84,7 +66,12 @@ export default function Dashboard() {
         setLoading(true);
         setError('');
 
-        const [casesResponse, usersResponse] = await Promise.all([getCases(), getUsers()]);
+        const targetRole = role === 'dsw' ? 'dsw' : 'admin';
+        const targetStatus = role === 'dsw' ? 'pending_dsw' : 'pending_admin';
+        const [casesResponse, usersResponse] = await Promise.all([
+          getCases({ role: targetRole, status: targetStatus }),
+          getUsers(),
+        ]);
 
         if (!hasLoggedResponseRef.current) {
           console.log('Dashboard API response:', { cases: casesResponse, users: usersResponse });
@@ -100,7 +87,9 @@ export default function Dashboard() {
           const name = student.name || 'Unknown Student';
           return {
             id: `#${entry.id}`,
+            caseId: entry.id,
             name,
+            enrollmentNo: student.enrollment_no || '',
             dept: student.program ? toTitleCase(student.program) : 'N/A',
             initials: name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase(),
             avatarBg: style.avatarBg,
@@ -110,12 +99,12 @@ export default function Dashboard() {
             severityClass: severityClass(severity),
             statusDot: statusDot(status),
             status,
-            action: status === 'Resolved' ? 'View Details' : 'Manage',
+            action: role === 'dsw' ? 'Approve' : 'Resolve',
           };
         });
 
         const total = casesResponse.length;
-        const pending = casesResponse.filter((entry) => ['pending', 'pending_review', 'dac_review', 'investigation'].includes(String(entry.status || '').toLowerCase())).length;
+        const pending = casesResponse.filter((entry) => String(entry.status || '').toLowerCase() !== 'resolved').length;
         const highSeverity = casesResponse.filter((entry) => ['high', 'critical'].includes(String(entry.severity || '').toLowerCase())).length;
         const resolved = casesResponse.filter((entry) => String(entry.status || '').toLowerCase() === 'resolved').length;
 
@@ -155,14 +144,53 @@ export default function Dashboard() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [role]);
 
-  const markAllRead = () => setNotifications((p) => p.map((n) => ({ ...n, read: true })));
-  const markRead    = (id) => setNotifications((p) => p.map((n) => n.id === id ? { ...n, read: true } : n));
+  const handleWorkflowAction = async (caseId) => {
+    try {
+      await approveCase(caseId);
+      const targetRole = role === 'dsw' ? 'dsw' : 'admin';
+      const targetStatus = role === 'dsw' ? 'pending_dsw' : 'pending_admin';
+      const [casesResponse, usersResponse] = await Promise.all([
+        getCases({ role: targetRole, status: targetStatus }),
+        getUsers(),
+      ]);
+
+      const usersById = Object.fromEntries(usersResponse.map((user) => [String(user.id), user]));
+      const updatedCases = casesResponse.map((entry, index) => {
+        const student = usersById[String(entry.student_id)] ?? {};
+        const status = toTitleCase(entry.status) || 'Pending Review';
+        const severity = toTitleCase(entry.severity) || 'Low';
+        const style = AVATAR_STYLES[index % AVATAR_STYLES.length];
+        const name = student.name || 'Unknown Student';
+        return {
+          id: `#${entry.id}`,
+          caseId: entry.id,
+          name,
+          enrollmentNo: student.enrollment_no || '',
+          dept: student.program ? toTitleCase(student.program) : 'N/A',
+          initials: name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase(),
+          avatarBg: style.avatarBg,
+          avatarText: style.avatarText,
+          offense: toTitleCase(entry.offense_type) || 'N/A',
+          severity,
+          severityClass: severityClass(severity),
+          statusDot: statusDot(status),
+          status,
+          action: role === 'dsw' ? 'Approve' : 'Resolve',
+        };
+      });
+
+      setCases(updatedCases);
+    } catch (workflowError) {
+      setError(workflowError?.message || 'Failed to update case workflow');
+    }
+  };
 
   const filtered = cases.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.enrollmentNo.toLowerCase().includes(search.toLowerCase()) ||
       c.offense.toLowerCase().includes(search.toLowerCase()) ||
       c.id.toLowerCase().includes(search.toLowerCase())
   );
@@ -185,75 +213,13 @@ export default function Dashboard() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search cases, students..."
+              placeholder="Search cases, students, enrollment no..."
               className="w-full pl-9 pr-4 py-2 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4f46e5]/30 placeholder:text-[#94a3b8] text-[#0f172a]"
             />
           </div>
 
           <div className="flex items-center gap-3">
-            {/* New Case */}
-            <Link
-              to="/register-case"
-              className="bg-[#4f46e5] hover:bg-[#4338ca] text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-            >
-              <span className="material-symbols-outlined text-[16px]">add</span>
-              Add New
-            </Link>
-
-            {/* Bell */}
-            <div className="relative" ref={notifRef}>
-              <button
-                onClick={() => setNotifOpen((v) => !v)}
-                className={`relative p-2 rounded-xl transition-colors ${notifOpen ? 'text-[#4f46e5] bg-[#4f46e5]/10' : 'text-[#64748b] hover:bg-slate-100'}`}
-              >
-                <span className="material-symbols-outlined text-[20px]">notifications</span>
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 h-3.5 w-3.5 rounded-full bg-red-500 border-2 border-white flex items-center justify-center">
-                    <span className="text-white text-[8px] font-bold">{unreadCount}</span>
-                  </span>
-                )}
-              </button>
-
-              <AnimatePresence>
-                {notifOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: -8 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: -8 }}
-                    transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                    className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-[#e2e8f0] rounded-2xl shadow-2xl z-50 overflow-hidden origin-top-right"
-                  >
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-[#f1f5f9]">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[#0f172a] font-semibold text-sm">Notifications</span>
-                        {unreadCount > 0 && <span className="bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{unreadCount}</span>}
-                      </div>
-                      {unreadCount > 0 && <button onClick={markAllRead} className="text-[#4f46e5] text-xs font-medium hover:underline">Mark all read</button>}
-                    </div>
-                    <div className="max-h-[360px] overflow-y-auto divide-y divide-[#f8fafc]">
-                      {notifications.map((n) => (
-                        <button key={n.id} onClick={() => markRead(n.id)}
-                          className={`w-full text-left flex items-start gap-3 px-4 py-3 transition-colors ${n.read ? 'bg-white hover:bg-slate-50' : 'bg-indigo-50/60 hover:bg-indigo-50'}`}
-                        >
-                          <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center mt-0.5 ${n.iconBg}`}>
-                            <span className={`material-symbols-outlined text-[15px] ${n.iconColor}`}>{n.icon}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm leading-snug ${n.read ? 'text-[#0f172a] font-medium' : 'text-[#0f172a] font-semibold'}`}>{n.title}</p>
-                            <p className="text-xs text-[#64748b] mt-0.5 leading-snug">{n.body}</p>
-                            <p className="text-[10px] text-[#94a3b8] mt-1">{n.time}</p>
-                          </div>
-                          {!n.read && <span className="h-2 w-2 rounded-full bg-[#4f46e5] shrink-0 mt-1.5" />}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="px-4 py-2.5 border-t border-[#f1f5f9] text-center">
-                      <button className="text-[#4f46e5] text-xs font-medium hover:underline">View all notifications</button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            <NotificationBell />
 
             {/* Profile */}
             {/* <div className="flex items-center gap-2 pl-2 border-l border-[#e2e8f0]">
@@ -288,17 +254,21 @@ export default function Dashboard() {
 
               <div className="relative z-10 max-w-lg">
                 <p className="text-indigo-200 text-sm font-medium mb-1">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1">{getGreeting()}, Admin </h1>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1">{getGreeting()}, {role === 'dsw' ? 'DSW' : 'Admin'} </h1>
                 <p className="text-indigo-200 text-sm leading-relaxed mb-5">
-                  You have <span className="text-white font-semibold">{statCards[1]?.value ?? '0'} pending DAC cases</span> and <span className="text-white font-semibold">{statCards[2]?.value ?? '0'} high-severity alerts</span> awaiting your review. Let's get started.
+                  You have <span className="text-white font-semibold">{statCards[1]?.value ?? '0'} pending workflow cases</span>.{' '}
+                  {cases[0] ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/cases/${cases[0].caseId}`)}
+                      className="text-white font-semibold underline"
+                    >
+                      Click to review
+                    </button>
+                  ) : (
+                    <span className="text-white font-semibold underline">Click to review</span>
+                  )}
                 </p>
-                <Link
-                  to="/register-case"
-                  className="inline-flex items-center gap-2 bg-white text-[#4f46e5] px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-indigo-50 transition-colors shadow-md"
-                >
-                  <span className="material-symbols-outlined text-[16px]">add_circle</span>
-                  Register New Case
-                </Link>
               </div>
 
               {/* Floating illustration placeholder */}
@@ -394,23 +364,13 @@ export default function Dashboard() {
                           </div>
                         </td>
                         <td className="px-5 py-3.5 text-right">
-                          {row.action === 'Manage' ? (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); navigate(`/cases/${row.id.replace('#', '')}`); }}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#4f46e5] text-white text-xs font-semibold rounded-lg hover:bg-[#4338ca] transition-colors"
-                            >
-                              <span className="material-symbols-outlined text-[13px]">open_in_new</span>
-                              Manage
-                            </button>
-                          ) : (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); navigate(`/view-case/${row.id.replace('#', '')}`); }}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#f1f5f9] text-[#64748b] text-xs font-semibold rounded-lg hover:bg-slate-200 transition-colors"
-                            >
-                              <span className="material-symbols-outlined text-[13px]">visibility</span>
-                              View
-                            </button>
-                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleWorkflowAction(row.caseId); }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#4f46e5] text-white text-xs font-semibold rounded-lg hover:bg-[#4338ca] transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                            {row.action}
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -493,33 +453,13 @@ export default function Dashboard() {
 
                   {/* Actions */}
                   <div className="flex flex-col gap-2 pt-1">
-                    {selected.action === 'Manage' ? (
-                      <>
-                        <button
-                          onClick={() => navigate(`/cases/${selected.id.replace('#', '')}`)}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#4f46e5] text-white text-sm font-semibold rounded-xl hover:bg-[#4338ca] transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">gavel</span>
-                          Manage Case
-                        </button>
-                        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-50 text-emerald-700 text-sm font-semibold rounded-xl hover:bg-emerald-100 transition-colors border border-emerald-200">
-                          <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                          Mark Resolved
-                        </button>
-                        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 text-sm font-semibold rounded-xl hover:bg-red-100 transition-colors border border-red-200">
-                          <span className="material-symbols-outlined text-[16px]">cancel</span>
-                          Dismiss Case
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => navigate(`/view-case/${selected.id.replace('#', '')}`)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#4f46e5] text-white text-sm font-semibold rounded-xl hover:bg-[#4338ca] transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">visibility</span>
-                        View Details
-                      </button>
-                    )}
+                    <button
+                      onClick={() => handleWorkflowAction(selected.caseId)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#4f46e5] text-white text-sm font-semibold rounded-xl hover:bg-[#4338ca] transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                      {selected.action}
+                    </button>
                   </div>
                 </div>
               </motion.aside>

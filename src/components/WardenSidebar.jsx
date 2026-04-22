@@ -6,6 +6,7 @@ const mainNavItems = [
   { to: '/warden/dashboard', label: 'Dashboard', icon: 'dashboard' },
   { to: '/warden/register', label: 'Register Case', icon: 'edit_document' },
   { to: '/warden/cases', label: 'My Cases', icon: 'folder_open' },
+  { to: '/settings', label: 'Settings', icon: 'settings' },
 ];
 
 function SidebarContent({ onClose }) {
