@@ -44,6 +44,7 @@ CREATE TABLE cases (
     incident_date DATE,
     penalty_points INT,
     severity_score FLOAT,
+    evidence_url TEXT,
     created_at TIMESTAMP DEFAULT NOW()
 );
 

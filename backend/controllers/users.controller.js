@@ -14,7 +14,8 @@ function generateTempPassword() {
 
 export async function getAllUsersController(req, res) {
   try {
-    const users = await getAllUsersService();
+    const excludeRole = req.query?.excludeRole ? String(req.query.excludeRole).toLowerCase() : null;
+    const users = await getAllUsersService({ excludeRole });
     res.status(200).json(users);
   } catch (error) {
     console.error('Error fetching users:', error);

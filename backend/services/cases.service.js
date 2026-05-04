@@ -89,6 +89,7 @@ export async function createCaseService(payload, requesterId) {
     incident_date: incidentDate = null,
     severity = 'low',
     penalty_points: penaltyPoints = 0,
+    evidence_url: evidenceUrl = null,
   } = payload;
 
   const client = await pool.connect();
@@ -107,9 +108,10 @@ export async function createCaseService(payload, requesterId) {
       description,
       location,
       incident_date,
-      penalty_points
+      penalty_points,
+      evidence_url
     )
-    VALUES ($1, $2, $3, $2, $4, $5, $6, $7, $8, $9, $10)
+    VALUES ($1, $2, $3, $2, $4, $5, $6, $7, $8, $9, $10, $11)
     RETURNING *
   `;
 
@@ -124,6 +126,7 @@ export async function createCaseService(payload, requesterId) {
       location,
       incidentDate,
       penaltyPoints,
+      evidenceUrl,
     ];
     const result = await client.query(query, values);
     const createdCase = result.rows[0];
@@ -145,6 +148,41 @@ export async function createCaseService(payload, requesterId) {
   } finally {
     client.release();
   }
+}
+
+export async function getCaseHistoryService({ requesterRole, requesterId, limit = 6 }) {
+  const normalizedRole = String(requesterRole || '').toLowerCase();
+  const values = [];
+  const conditions = [];
+
+  if (normalizedRole === 'student') {
+    values.push(requesterId);
+    conditions.push(`cases.student_id = $${values.length}`);
+  } else if (normalizedRole === 'warden') {
+    values.push(requesterId);
+    conditions.push(`cases.created_by = $${values.length}`);
+  }
+
+  values.push(limit);
+  const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const query = `
+    SELECT
+      cases.id,
+      cases.offense_type,
+      cases.status,
+      cases.created_at,
+      cases.incident_date,
+      users.name AS student_name
+    FROM cases
+    LEFT JOIN users ON users.id = cases.student_id
+    ${whereClause}
+    ORDER BY cases.created_at DESC
+    LIMIT $${values.length}
+  `;
+
+  const result = await pool.query(query, values);
+  return result.rows;
 }
 
 export async function approveCaseService(caseId, actor) {

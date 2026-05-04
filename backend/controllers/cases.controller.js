@@ -2,6 +2,7 @@ import {
   createCaseService,
   getAllCasesService,
   approveCaseService,
+  getCaseHistoryService,
 } from '../services/cases.service.js';
 
 export async function getAllCasesController(req, res) {
@@ -83,5 +84,43 @@ export async function approveCaseController(req, res) {
 
     console.error('Error approving case:', error);
     return res.status(500).json({ error: 'Failed to approve case' });
+  }
+}
+
+export async function getCaseHistoryController(req, res) {
+  try {
+    const requesterRole = String(req.user?.role || '').toLowerCase();
+    const requesterId = Number(req.user?.sub);
+    const limit = Number(req.query?.limit) || 6;
+
+    const history = await getCaseHistoryService({
+      requesterRole,
+      requesterId,
+      limit,
+    });
+
+    res.status(200).json(history);
+  } catch (error) {
+    console.error('Error fetching case history:', error);
+    res.status(500).json({ error: 'Failed to fetch case history' });
+  }
+}
+
+export async function uploadEvidenceController(req, res) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Evidence file is required' });
+    }
+
+    const fileUrl = `/uploads/evidence/${req.file.filename}`;
+    return res.status(201).json({
+      fileUrl,
+      fileName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+    });
+  } catch (error) {
+    console.error('Evidence upload error:', error);
+    return res.status(500).json({ error: 'Failed to upload evidence' });
   }
 }

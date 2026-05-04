@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
-import { getUsers } from '../services/api';
+import { createCase, getUsers, uploadEvidence } from '../services/api';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const offenseOptions = [
@@ -95,7 +95,18 @@ function toYearLabel(value) {
 
 // ─── Step Sections ────────────────────────────────────────────────────────────
 
-function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, onEnrollmentKeyDown, lookupLoading, lookupStatusType, lookupStatusMessage, errors, getInputClass }) {
+function StepStudentInfo({
+  form,
+  set,
+  onEnrollmentChange,
+  onEnrollmentBlur,
+  onEnrollmentKeyDown,
+  lookupLoading,
+  lookupStatusType,
+  lookupStatusMessage,
+  errors,
+  getInputClass,
+}) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
@@ -121,9 +132,9 @@ function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, onEn
           <input
             type="text"
             value={form.studentName}
-            onChange={set('studentName')}
             placeholder=""
-            className={inputCls}
+            readOnly
+            className={`${inputCls} bg-[#f1f5f9]`}
           />
         </Field>
         <Field label="Department">
@@ -410,7 +421,15 @@ function StepIncidentDetails({ form, set, onOffenseTypeChange, errors, getInputC
   );
 }
 
-function StepEvidence({ dragOver, setDragOver }) {
+function StepEvidence({
+  dragOver,
+  setDragOver,
+  onFileSelect,
+  file,
+  previewUrl,
+  uploadError,
+  uploadedUrl,
+}) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
@@ -420,21 +439,54 @@ function StepEvidence({ dragOver, setDragOver }) {
       <p className="text-[#64748b] text-sm leading-5">
         Attach any supporting materials — photos, videos, or signed witness statements.
       </p>
-      <div
+      <label
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => { e.preventDefault(); setDragOver(false); }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          const dropped = e.dataTransfer?.files?.[0];
+          if (dropped) onFileSelect(dropped);
+        }}
         className={`h-44 flex flex-col items-center justify-center gap-2 bg-[#f8fafc] border-2 border-dashed rounded-lg transition-colors cursor-pointer ${
           dragOver ? 'border-[#4f46e5] bg-[#f0f4ff]' : 'border-[#cbd5e1]'
         }`}
       >
+        <input
+          type="file"
+          accept="image/*,video/*,application/pdf"
+          className="hidden"
+          onChange={(e) => {
+            const selected = e.target.files?.[0];
+            if (selected) onFileSelect(selected);
+          }}
+        />
         <span className="material-symbols-outlined text-[#94a3b8] text-[36px]">upload_file</span>
         <p className="text-sm">
           <span className="font-semibold text-[#4f46e5]">Click to upload</span>
           <span className="text-[#64748b]"> or drag and drop</span>
         </p>
         <p className="text-[#64748b] text-xs">PDF, JPG, PNG or MP4 (MAX. 10MB)</p>
-      </div>
+      </label>
+      {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
+      {file && (
+        <div className="rounded-lg border border-[#e2e8f0] bg-white px-4 py-3 flex items-center gap-3">
+          {previewUrl ? (
+            <img src={previewUrl} alt="Evidence preview" className="h-12 w-12 rounded-md object-cover" />
+          ) : (
+            <div className="h-12 w-12 rounded-md bg-[#f1f5f9] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[#94a3b8]">description</span>
+            </div>
+          )}
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-[#0f172a]">{file.name}</p>
+            <p className="text-xs text-[#64748b]">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+          </div>
+          {uploadedUrl && (
+            <span className="text-xs font-semibold text-emerald-600">Uploaded</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -610,10 +662,45 @@ export default function RegisterCase() {
   const [lookupStatusType, setLookupStatusType] = useState('');
   const [lookupStatusMessage, setLookupStatusMessage] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [nameLocked, setNameLocked] = useState(false);
+  const [evidenceFile, setEvidenceFile] = useState(null);
+  const [evidencePreviewUrl, setEvidencePreviewUrl] = useState('');
+  const [evidenceError, setEvidenceError] = useState('');
+  const [evidenceUploadedUrl, setEvidenceUploadedUrl] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [caseResult, setCaseResult] = useState(null);
+  const [studentId, setStudentId] = useState(null);
+
+  const handleEvidenceSelect = (file) => {
+    setEvidenceError('');
+    setEvidenceUploadedUrl('');
+
+    if (!file) return;
+    const isPdf = file.type === 'application/pdf';
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    if (!isPdf && !isImage && !isVideo) {
+      setEvidenceError('Unsupported file type. Use PDF, image, or video.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setEvidenceError('File exceeds 10MB limit.');
+      return;
+    }
+    setEvidenceFile(file);
+  };
+
+  useEffect(() => {
+    if (!evidenceFile || !evidenceFile.type?.startsWith('image/')) {
+      setEvidencePreviewUrl('');
+      return;
+    }
+    const previewUrl = URL.createObjectURL(evidenceFile);
+    setEvidencePreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [evidenceFile]);
 
   const set = (field) => (e) => {
     const value = e.target.value;
@@ -655,11 +742,15 @@ export default function RegisterCase() {
 
       const user = users.find((entry) => String(entry.enrollment_no || '').trim().toLowerCase() === enrollment);
       if (!user) {
+        setStudentId(null);
+        setNameLocked(false);
         setLookupStatusType('error');
         setLookupStatusMessage('No student found.');
         return;
       }
 
+      setStudentId(user.id);
+      setNameLocked(true);
       setForm((prev) => ({
         ...prev,
         studentName: user.name || prev.studentName,
@@ -681,6 +772,8 @@ export default function RegisterCase() {
   const handleEnrollmentChange = (e) => {
     setLookupStatusType('');
     setLookupStatusMessage('');
+    setStudentId(null);
+    setNameLocked(false);
     setForm((p) => ({ ...p, rollNumber: e.target.value }));
     setErrors((prev) => {
       if (!prev.rollNumber) return prev;
@@ -804,10 +897,34 @@ export default function RegisterCase() {
     setError(null);
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise((r) => setTimeout(r, 1200));
-      const token = `DAC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-      setCaseResult({ token, offenseLevel: 2, severityScore: 65, fine: 5000, penaltyPoints: 10 });
+      if (!studentId || !form.offenseType) {
+        throw new Error('Please provide enrollment number and offense type before submitting.');
+      }
+
+      let evidenceUrl = evidenceUploadedUrl;
+      if (evidenceFile && !evidenceUrl) {
+        const uploadPayload = await uploadEvidence(evidenceFile);
+        evidenceUrl = uploadPayload?.fileUrl || '';
+        setEvidenceUploadedUrl(evidenceUrl);
+      }
+
+      const payload = await createCase({
+        student_id: studentId,
+        offense_type: form.offenseType === 'Other' ? (form.customOffense || 'Other') : form.offenseType,
+        description: form.description || null,
+        location: `${form.hostel || ''}${form.roomNo ? ` Room ${form.roomNo}` : ''}`.trim() || null,
+        incident_date: null,
+        severity: 'low',
+        evidence_url: evidenceUrl || null,
+      });
+
+      setCaseResult({
+        token: `#${payload.id}`,
+        offenseLevel: 1,
+        severityScore: 25,
+        fine: Number(payload.penalty_points || 0) * 100,
+        penaltyPoints: Number(payload.penalty_points || 0),
+      });
     } catch (err) {
       setError(err?.message ?? 'Failed to submit case. Please try again.');
     } finally {
@@ -843,7 +960,15 @@ export default function RegisterCase() {
       errors={errors}
       getInputClass={getInputClass}
     />,
-    <StepEvidence dragOver={dragOver} setDragOver={setDragOver} />,
+    <StepEvidence
+      dragOver={dragOver}
+      setDragOver={setDragOver}
+      onFileSelect={handleEvidenceSelect}
+      file={evidenceFile}
+      previewUrl={evidencePreviewUrl}
+      uploadError={evidenceError}
+      uploadedUrl={evidenceUploadedUrl}
+    />,
     <StepReview form={form} />,
     <StepSubmit
       caseResult={caseResult} loading={loading} error={error}

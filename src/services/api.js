@@ -51,6 +51,13 @@ export async function loginWithCredentials(email, password) {
   });
 }
 
+export async function loginWithGoogle(credential) {
+  return fetchJson('/api/login/google', {
+    method: 'POST',
+    body: JSON.stringify({ credential }),
+  });
+}
+
 export async function changePassword({ userId, currentPassword, newPassword }) {
   return fetchJson('/api/change-password', {
     method: 'POST',
@@ -58,8 +65,13 @@ export async function changePassword({ userId, currentPassword, newPassword }) {
   });
 }
 
-export async function getUsers() {
-  return fetchJson('/api/users');
+export async function getUsers(options = {}) {
+  const params = new URLSearchParams();
+  if (options.excludeRole) {
+    params.set('excludeRole', String(options.excludeRole));
+  }
+  const query = params.toString();
+  return fetchJson(`/api/users${query ? `?${query}` : ''}`);
 }
 
 export async function updateUserRole(userId, role) {
@@ -82,6 +94,32 @@ export async function createCase(payload) {
   });
 }
 
+export async function uploadEvidence(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(buildUrl('/api/cases/upload-evidence'), {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let message = `Request failed: ${response.status} ${response.statusText}`;
+    try {
+      const payload = await response.json();
+      if (payload?.error) message = payload.error;
+    } catch {
+      // Ignore JSON parse failures.
+    }
+    throw new Error(message);
+  }
+
+  return response.json();
+}
+
 export async function approveCase(caseId) {
   return fetchJson(`/api/cases/${caseId}/approve`, {
     method: 'PUT',
@@ -98,6 +136,10 @@ export async function getCases(filters = {}) {
 
   const queryString = params.toString();
   return fetchJson(`/api/cases${queryString ? `?${queryString}` : ''}`);
+}
+
+export async function getCaseHistory(limit = 6) {
+  return fetchJson(`/api/cases/history?limit=${encodeURIComponent(limit)}`);
 }
 
 export async function createNotifications(payload) {

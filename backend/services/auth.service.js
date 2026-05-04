@@ -34,3 +34,14 @@ export async function updateUserPasswordById(id, passwordHash) {
   const result = await pool.query(query, [id, passwordHash]);
   return result.rows[0] || null;
 }
+
+export async function createUserFromGoogle({ name, email, role }) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const query = `
+    INSERT INTO users (name, email, role)
+    VALUES ($1, $2, $3)
+    RETURNING id, name, email, role
+  `;
+  const result = await pool.query(query, [name, normalizedEmail, role]);
+  return result.rows[0] || null;
+}

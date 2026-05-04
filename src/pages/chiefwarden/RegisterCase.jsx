@@ -91,7 +91,18 @@ function toYearLabel(value) {
   return `${n}${suffix} Year`;
 }
 
-function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, onEnrollmentKeyDown, lookupLoading, lookupStatusType, lookupStatusMessage, errors, getInputClass }) {
+function StepStudentInfo({
+  form,
+  set,
+  onEnrollmentChange,
+  onEnrollmentBlur,
+  onEnrollmentKeyDown,
+  lookupLoading,
+  lookupStatusType,
+  lookupStatusMessage,
+  errors,
+  getInputClass,
+}) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-2 mb-1">
@@ -117,9 +128,9 @@ function StepStudentInfo({ form, set, onEnrollmentChange, onEnrollmentBlur, onEn
           <input
             type="text"
             value={form.studentName}
-            onChange={set('studentName')}
             placeholder=""
-            className={inputCls}
+            readOnly
+            className={`${inputCls} bg-[#f1f5f9]`}
           />
         </Field>
         <Field label="Department">
@@ -204,7 +215,6 @@ function StepIncidentDetails({ form, set, onOffenseTypeChange, errors, getInputC
           type="time"
           value={form.incidentTime}
           onChange={set('incidentTime')}
-          data-field="incidentTime"
           className={getInputClass('incidentTime')}
         />
         {errors.incidentTime ? <p className="text-xs text-red-600">{errors.incidentTime}</p> : null}
@@ -605,6 +615,7 @@ export default function RegisterCase() {
   const [lookupStatusType, setLookupStatusType] = useState('');
   const [lookupStatusMessage, setLookupStatusMessage] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [nameLocked, setNameLocked] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -650,11 +661,13 @@ export default function RegisterCase() {
 
       const user = users.find((entry) => String(entry.enrollment_no || '').trim().toLowerCase() === enrollment);
       if (!user) {
+        setNameLocked(false);
         setLookupStatusType('error');
         setLookupStatusMessage('No student found.');
         return;
       }
 
+      setNameLocked(true);
       setForm((prev) => ({
         ...prev,
         studentName: user.name || prev.studentName,
@@ -676,6 +689,7 @@ export default function RegisterCase() {
   const handleEnrollmentChange = (e) => {
     setLookupStatusType('');
     setLookupStatusMessage('');
+    setNameLocked(false);
     setForm((p) => ({ ...p, rollNumber: e.target.value }));
     setErrors((prev) => {
       if (!prev.rollNumber) return prev;

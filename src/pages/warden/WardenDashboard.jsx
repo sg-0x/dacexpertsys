@@ -3,8 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import WardenSidebar from '../../components/WardenSidebar';
 import NotificationBell from '../../components/NotificationBell';
+import PastRecordsTable from '../../components/PastRecordsTable';
 import { pageVariants, listVariants, itemVariants } from '../../lib/motion';
-import { getCases, getUsers } from '../../services/api';
+import { getCaseHistory, getCases, getUsers } from '../../services/api';
 
 const AVATAR_STYLES = [
   { avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700' },
@@ -50,6 +51,9 @@ export default function WardenDashboard() {
   const [statCards, setStatCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [historyRecords, setHistoryRecords] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -63,6 +67,29 @@ export default function WardenDashboard() {
           getCases({ role: 'warden' }),
           getUsers(),
         ]);
+
+        setHistoryLoading(true);
+        setHistoryError('');
+        try {
+          const historyResponse = await getCaseHistory(6);
+          const mappedHistory = historyResponse.map((entry) => ({
+            id: entry.id,
+            token: `#${entry.id}`,
+            studentName: entry.student_name || 'Unknown Student',
+            offense: toTitleCase(entry.offense_type) || 'N/A',
+            status: toTitleCase(entry.status) || 'N/A',
+            date: new Date(entry.incident_date ?? entry.created_at).toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            }),
+          }));
+          if (mounted) setHistoryRecords(mappedHistory);
+        } catch (historyLoadError) {
+          if (mounted) setHistoryError(historyLoadError?.message || 'Failed to fetch history.');
+        } finally {
+          if (mounted) setHistoryLoading(false);
+        }
 
         if (!hasLoggedResponseRef.current) {
           console.log('WardenDashboard API response:', { cases: casesResponse, users: usersResponse });
@@ -114,6 +141,8 @@ export default function WardenDashboard() {
           setError(loadError?.message || 'Failed to fetch dashboard data.');
           setCases([]);
           setStatCards([]);
+          setHistoryRecords([]);
+          setHistoryLoading(false);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -224,6 +253,13 @@ export default function WardenDashboard() {
                 </motion.div>
               ))}
             </motion.div>
+
+            <PastRecordsTable
+              records={historyRecords}
+              loading={historyLoading}
+              error={historyError}
+              onViewAll={() => navigate('/warden/cases')}
+            />
 
             {/* ── Table ── */}
             <motion.div variants={itemVariants} className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">

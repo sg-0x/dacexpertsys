@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { loginWithCredentials } from './services/api';
+import { loginWithCredentials, loginWithGoogle } from './services/api';
 import { useAuth } from './context/AuthContext';
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
@@ -42,6 +42,10 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const googleButtonRef = useRef(null);
+  const googleInitializedRef = useRef(false);
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const handleRoleRedirect = (role) => {
     const normalizedRole = String(role || '').toLowerCase();
@@ -88,6 +92,59 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!googleClientId || googleInitializedRef.current) return;
+
+    const loadScript = () => new Promise((resolve, reject) => {
+      if (document.querySelector('script[src="https://accounts.google.com/gsi/client"]')) {
+        resolve();
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Google Sign-In')); 
+      document.body.appendChild(script);
+    });
+
+    loadScript()
+      .then(() => {
+        if (!window.google || googleInitializedRef.current) return;
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: async (response) => {
+            try {
+              setAuthError('');
+              setGoogleLoading(true);
+              const payload = await loginWithGoogle(response.credential);
+              login(payload);
+              handleRoleRedirect(payload?.user?.role);
+            } catch (err) {
+              setAuthError(err?.message || 'Google login failed');
+            } finally {
+              setGoogleLoading(false);
+            }
+          },
+        });
+
+        if (googleButtonRef.current) {
+          window.google.accounts.id.renderButton(googleButtonRef.current, {
+            theme: 'outline',
+            size: 'large',
+            width: '100%',
+            text: 'continue_with',
+          });
+        }
+
+        googleInitializedRef.current = true;
+      })
+      .catch((err) => {
+        setAuthError(err?.message || 'Google login failed');
+      });
+  }, [googleClientId, login]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden font-sans bg-[#286dbf]">
@@ -205,6 +262,28 @@ export default function Login() {
               )}
               {loading ? 'Signing In…' : 'Sign In'}
             </button>
+
+            <div className="flex items-center gap-3 text-xs text-[#94a3b8]">
+              <span className="flex-1 h-px bg-[#e2e8f0]" />
+              or
+              <span className="flex-1 h-px bg-[#e2e8f0]" />
+            </div>
+
+            <div className="w-full">
+              {googleClientId ? (
+                <div className={googleLoading ? 'opacity-70 pointer-events-none' : ''}>
+                  <div ref={googleButtonRef} className="w-full" />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="w-full border border-[#e2e8f0] text-[#64748b] text-sm font-semibold py-3 rounded-xl bg-[#f8fafc]"
+                >
+                  Continue with Google
+                </button>
+              )}
+            </div>
           </form>
 
           {/* ── Footer note ── */}

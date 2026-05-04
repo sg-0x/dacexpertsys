@@ -24,7 +24,7 @@ export default function UserManagement() {
       try {
         setLoading(true);
         setError('');
-        const payload = await getUsers();
+        const payload = await getUsers({ excludeRole: 'student' });
         if (!mounted) return;
         setUsers(payload);
       } catch (loadError) {

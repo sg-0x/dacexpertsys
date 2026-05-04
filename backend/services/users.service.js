@@ -1,7 +1,16 @@
 import pool from '../config/db.js';
 
-export async function getAllUsersService() {
-  const result = await pool.query(`
+export async function getAllUsersService({ excludeRole } = {}) {
+  const values = [];
+  let whereClause = '';
+
+  if (excludeRole) {
+    values.push(excludeRole);
+    whereClause = `WHERE role != $${values.length}`;
+  }
+
+  const result = await pool.query(
+    `
     SELECT
       id,
       name,
@@ -14,7 +23,10 @@ export async function getAllUsersService() {
       room,
       total_points
     FROM users
-  `);
+    ${whereClause}
+  `,
+    values,
+  );
   return result.rows;
 }
 

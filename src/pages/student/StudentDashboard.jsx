@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StudentSummaryCards from '../../components/student/StudentSummaryCards';
 import StudentCasesTable from '../../components/student/StudentCasesTable';
-import { getCases } from '../../services/api';
+import PastRecordsTable from '../../components/PastRecordsTable';
+import { getCaseHistory, getCases } from '../../services/api';
 
 const PENALTY_THRESHOLDS = {
   warning: 25,
@@ -37,6 +38,9 @@ export default function StudentDashboard() {
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [historyRecords, setHistoryRecords] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -80,12 +84,33 @@ export default function StudentDashboard() {
           setSummary({ totalCases, activeCases, resolvedCases, totalPenaltyPoints });
           setRecentActivity(activity);
         }
+
+        setHistoryLoading(true);
+        setHistoryError('');
+        try {
+          const historyResponse = await getCaseHistory(6);
+          const mappedHistory = historyResponse.map((entry) => ({
+            id: entry.id,
+            token: `#${entry.id}`,
+            studentName: entry.student_name || 'You',
+            offense: toTitleCase(entry.offense_type) || 'N/A',
+            status: toTitleCase(entry.status) || 'N/A',
+            date: formatDate(entry.incident_date ?? entry.created_at),
+          }));
+          if (mounted) setHistoryRecords(mappedHistory);
+        } catch (historyLoadError) {
+          if (mounted) setHistoryError(historyLoadError?.message || 'Failed to fetch history.');
+        } finally {
+          if (mounted) setHistoryLoading(false);
+        }
       } catch (loadError) {
         if (mounted) {
           setError(loadError?.message || 'Failed to fetch student data.');
           setCases([]);
           setRecentActivity([]);
           setSummary({ totalCases: 0, activeCases: 0, resolvedCases: 0, totalPenaltyPoints: 0 });
+          setHistoryRecords([]);
+          setHistoryLoading(false);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -112,6 +137,15 @@ export default function StudentDashboard() {
         <StudentCasesTable
           cases={cases}
           onViewCase={(token) => navigate(`/student/cases/${token}`)}
+        />
+      </section>
+
+      <section className="space-y-4">
+        <PastRecordsTable
+          records={historyRecords}
+          loading={historyLoading}
+          error={historyError}
+          onViewAll={() => navigate('/student/cases')}
         />
       </section>
 

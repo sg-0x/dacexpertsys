@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Sidebar from '../../components/Sidebar';
 import NotificationBell from '../../components/NotificationBell';
+import PastRecordsTable from '../../components/PastRecordsTable';
 import { pageVariants, listVariants, itemVariants } from '../../lib/motion';
-import { approveCase, getCases, getUsers } from '../../services/api';
+import { approveCase, getCaseHistory, getCases, getUsers } from '../../services/api';
 
 const AVATAR_STYLES = [
   { avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700' },
@@ -61,6 +62,9 @@ export default function DswDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [processingCaseId, setProcessingCaseId] = useState(null);
+  const [historyRecords, setHistoryRecords] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState('');
 
   const loadDashboard = async ({ tableStatus = statusFilter, skipLoading = false } = {}) => {
     try {
@@ -73,6 +77,29 @@ export default function DswDashboard() {
         getCases(statusParam ? { status: statusParam } : {}),
         getUsers(),
       ]);
+
+      setHistoryLoading(true);
+      setHistoryError('');
+      try {
+        const historyResponse = await getCaseHistory(6);
+        const mappedHistory = historyResponse.map((entry) => ({
+          id: entry.id,
+          token: `#${entry.id}`,
+          studentName: entry.student_name || 'Unknown Student',
+          offense: toTitleCase(entry.offense_type) || 'N/A',
+          status: toTitleCase(entry.status) || 'N/A',
+          date: new Date(entry.incident_date ?? entry.created_at).toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          }),
+        }));
+        setHistoryRecords(mappedHistory);
+      } catch (historyLoadError) {
+        setHistoryError(historyLoadError?.message || 'Failed to fetch history.');
+      } finally {
+        setHistoryLoading(false);
+      }
 
       if (!hasLoggedResponseRef.current) {
         console.log('DswDashboard API response:', { overviewCases, queueCases, usersResponse });
@@ -122,6 +149,8 @@ export default function DswDashboard() {
       setError(loadError?.message || 'Failed to fetch DSW dashboard data.');
       setTableCases([]);
       setStats({ total: 0, pending: 0, forwarded: 0, resolved: 0 });
+      setHistoryRecords([]);
+      setHistoryLoading(false);
     } finally {
       if (!skipLoading) setLoading(false);
     }
@@ -264,6 +293,13 @@ export default function DswDashboard() {
               </motion.div>
             ))}
           </motion.div>
+
+          <PastRecordsTable
+            records={historyRecords}
+            loading={historyLoading}
+            error={historyError}
+            onViewAll={() => navigate('/reports')}
+          />
 
           <motion.div variants={itemVariants} className="bg-white rounded-2xl border border-[#e2e8f0] shadow-sm overflow-hidden">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-6 py-4 border-b border-[#f1f5f9]">
